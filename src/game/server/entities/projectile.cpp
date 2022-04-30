@@ -25,7 +25,7 @@ CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, 
 
 void CProjectile::Reset()
 {
-	GameServer()->m_World.DestroyEntity(this);
+	GS()->m_World.DestroyEntity(this);
 }
 
 vec2 CProjectile::GetPos(float Time)
@@ -36,18 +36,18 @@ vec2 CProjectile::GetPos(float Time)
 	switch(m_Type)
 	{
 		case WEAPON_GRENADE:
-			Curvature = GameServer()->Tuning()->m_GrenadeCurvature;
-			Speed = GameServer()->Tuning()->m_GrenadeSpeed;
+			Curvature = GS()->Tuning()->m_GrenadeCurvature;
+			Speed = GS()->Tuning()->m_GrenadeSpeed;
 			break;
 
 		case WEAPON_SHOTGUN:
-			Curvature = GameServer()->Tuning()->m_ShotgunCurvature;
-			Speed = GameServer()->Tuning()->m_ShotgunSpeed;
+			Curvature = GS()->Tuning()->m_ShotgunCurvature;
+			Speed = GS()->Tuning()->m_ShotgunSpeed;
 			break;
 
 		case WEAPON_GUN:
-			Curvature = GameServer()->Tuning()->m_GunCurvature;
-			Speed = GameServer()->Tuning()->m_GunSpeed;
+			Curvature = GS()->Tuning()->m_GunCurvature;
+			Speed = GS()->Tuning()->m_GunSpeed;
 			break;
 	}
 
@@ -61,24 +61,24 @@ void CProjectile::Tick()
 	float Ct = (Server()->Tick()-m_StartTick)/(float)Server()->TickSpeed();
 	vec2 PrevPos = GetPos(Pt);
 	vec2 CurPos = GetPos(Ct);
-	int Collide = GameServer()->Collision()->IntersectLine(PrevPos, CurPos, &CurPos, 0);
-	CCharacter *OwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	CCharacter *TargetChr = GameServer()->m_World.IntersectCharacter(PrevPos, CurPos, 6.0f, CurPos, OwnerChar);
+	int Collide = GS()->Collision()->IntersectLine(PrevPos, CurPos, &CurPos, 0);
+	CCharacter *OwnerChar = GS()->GetPlayerChar(m_Owner);
+	CCharacter *TargetChr = GS()->m_World.IntersectCharacter(PrevPos, CurPos, 6.0f, CurPos, OwnerChar);
 
 	m_LifeSpan--;
 
 	if(TargetChr || Collide || m_LifeSpan < 0 || GameLayerClipped(CurPos))
 	{
 		if(m_LifeSpan >= 0 || m_Weapon == WEAPON_GRENADE)
-			GameServer()->CreateSound(CurPos, m_SoundImpact);
+			GS()->CreateSound(CurPos, m_SoundImpact);
 
 		if(m_Explosive)
-			GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, false);
+			GS()->CreateExplosion(CurPos, m_Owner, m_Weapon, false);
 
 		else if(TargetChr)
 			TargetChr->TakeDamage(m_Direction * max(0.001f, m_Force), m_Damage, m_Owner, m_Weapon);
 
-		GameServer()->m_World.DestroyEntity(this);
+		GS()->m_World.DestroyEntity(this);
 	}
 }
 

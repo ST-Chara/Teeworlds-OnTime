@@ -24,11 +24,11 @@ class IGameController
 	vec2 m_aaSpawnPoints[3][64];
 	int m_aNumSpawnPoints[3];
 
-	class CGameContext *m_pGameServer;
+	class CGS *m_pGS;
 	class IServer *m_pServer;
 
 protected:
-	CGameContext *GameServer() const { return m_pGameServer; }
+	CGS *GS() const { return m_pGS; }
 	IServer *Server() const { return m_pServer; }
 
 	struct CSpawnEval
@@ -76,7 +76,7 @@ public:
 	bool IsTeamplay() const;
 	bool IsGameOver() const { return m_GameOverTick != -1; }
 
-	IGameController(class CGameContext *pGameServer);
+	IGameController(class CGS *pGS);
 	virtual ~IGameController();
 
 	virtual void DoWincheck();

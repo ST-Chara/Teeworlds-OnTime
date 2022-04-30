@@ -14,7 +14,7 @@
 //////////////////////////////////////////////////
 CGameWorld::CGameWorld()
 {
-	m_pGameServer = 0x0;
+	m_pGS = 0x0;
 	m_pServer = 0x0;
 
 	m_Paused = false;
@@ -31,10 +31,10 @@ CGameWorld::~CGameWorld()
 			delete m_apFirstEntityTypes[i];
 }
 
-void CGameWorld::SetGameServer(CGameContext *pGameServer)
+void CGameWorld::SetGS(CGS *pGS)
 {
-	m_pGameServer = pGameServer;
-	m_pServer = m_pGameServer->Server();
+	m_pGS = pGS;
+	m_pServer = m_pGS->Server();
 }
 
 CEntity *CGameWorld::FindFirst(int Type)
@@ -129,7 +129,7 @@ void CGameWorld::Reset()
 		}
 	RemoveEntities();
 
-	GameServer()->m_pController->PostReset();
+	GS()->m_pController->PostReset();
 	RemoveEntities();
 
 	m_ResetRequested = false;
@@ -158,8 +158,8 @@ void CGameWorld::Tick()
 
 	if(!m_Paused)
 	{
-		if(GameServer()->m_pController->IsForceBalanced())
-			GameServer()->SendChat(-1, CGameContext::CHAT_ALL, "Teams have been balanced");
+		if(GS()->m_pController->IsForceBalanced())
+			GS()->SendChat(-1, CGS::CHAT_ALL, "Teams have been balanced");
 		// update all objects
 		for(int i = 0; i < NUM_ENTTYPES; i++)
 			for(CEntity *pEnt = m_apFirstEntityTypes[i]; pEnt; )
@@ -247,23 +247,23 @@ void CGameWorld::UpdatePlayerMaps()
 			dist[j].first = 1e10;
 			if (!Server()->ClientIngame(j))
 				continue;
-			/*CCharacter* ch = GameServer()->m_apPlayers[j]->GetCharacter();
+			/*CCharacter* ch = GS()->m_apPlayers[j]->GetCharacter();
 			if (!ch)
 				continue;
 			// copypasted chunk from character.cpp Snap() follows
 			int SnappingClient = i;
-			CCharacter* SnapChar = GameServer()->GetPlayerChar(SnappingClient);
+			CCharacter* SnapChar = GS()->GetPlayerChar(SnappingClient);
 			if(SnapChar &&
-				GameServer()->m_apPlayers[SnappingClient]->GetTeam() != -1 &&
+				GS()->m_apPlayers[SnappingClient]->GetTeam() != -1 &&
 				!ch->CanCollide(SnappingClient) &&
-				(!GameServer()->m_apPlayers[SnappingClient]->m_IsUsingDDRaceClient ||
-					(GameServer()->m_apPlayers[SnappingClient]->m_IsUsingDDRaceClient &&
-					!GameServer()->m_apPlayers[SnappingClient]->m_ShowOthers
+				(!GS()->m_apPlayers[SnappingClient]->m_IsUsingDDRaceClient ||
+					(GS()->m_apPlayers[SnappingClient]->m_IsUsingDDRaceClient &&
+					!GS()->m_apPlayers[SnappingClient]->m_ShowOthers
                                 	)
 				)
                         ) continue;*/
 
-			dist[j].first = distance(GameServer()->m_apPlayers[i]->m_ViewPos, GameServer()->m_apPlayers[j]->m_ViewPos);
+			dist[j].first = distance(GS()->m_apPlayers[i]->m_ViewPos, GS()->m_apPlayers[j]->m_ViewPos);
 		}
 
 		// always send the player himself
@@ -313,7 +313,7 @@ CCharacter *CGameWorld::ClosestCharacter(vec2 Pos, float Radius, CEntity *pNotTh
 	float ClosestRange = Radius*2;
 	CCharacter *pClosest = 0;
 
-	CCharacter *p = (CCharacter *)GameServer()->m_World.FindFirst(ENTTYPE_CHARACTER);
+	CCharacter *p = (CCharacter *)GS()->m_World.FindFirst(ENTTYPE_CHARACTER);
 	for(; p; p = (CCharacter *)p->TypeNext())
  	{
 		if(p == pNotThis)

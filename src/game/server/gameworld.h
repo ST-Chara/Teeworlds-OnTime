@@ -33,11 +33,11 @@ private:
 	CEntity *m_pNextTraverseEntity;
 	CEntity *m_apFirstEntityTypes[NUM_ENTTYPES];
 
-	class CGameContext *m_pGameServer;
+	class CGS *m_pGS;
 	class IServer *m_pServer;
 
 public:
-	class CGameContext *GameServer() { return m_pGameServer; }
+	class CGS *GS() { return m_pGS; }
 	class IServer *Server() { return m_pServer; }
 	
 	void UpdatePlayerMaps();
@@ -49,7 +49,7 @@ public:
 	CGameWorld();
 	~CGameWorld();
 
-	void SetGameServer(CGameContext *pGameServer);
+	void SetGS(CGS *pGS);
 
 	CEntity *FindFirst(int Type);
 

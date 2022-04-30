@@ -13,7 +13,7 @@ class CPlayer
 	MACRO_ALLOC_POOL_ID()
 
 public:
-	CPlayer(CGameContext *pGameServer, int ClientID, int Team);
+	CPlayer(CGS *pGS, int ClientID, int Team);
 	~CPlayer();
 
 	void Init(int CID);
@@ -103,11 +103,22 @@ public:
 
 	int m_Authed;
 
+	struct
+	{
+		int m_UserID;
+		char m_Username[32];
+		char m_Password[32];
+
+		int m_Level;
+		int m_Exp;
+		unsigned int m_Money;
+	} m_AccData;
+
 private:
 	CCharacter *m_pCharacter;
-	CGameContext *m_pGameServer;
+	CGS *m_pGS;
 
-	CGameContext *GameServer() const { return m_pGameServer; }
+	CGS *GS() const { return m_pGS; }
 	IServer *Server() const;
 
 	//

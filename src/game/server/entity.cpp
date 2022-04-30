@@ -39,21 +39,21 @@ int CEntity::NetworkClipped(int SnappingClient, vec2 CheckPos)
 	if(SnappingClient == -1)
 		return 0;
 
-	float dx = GameServer()->m_apPlayers[SnappingClient]->m_ViewPos.x-CheckPos.x;
-	float dy = GameServer()->m_apPlayers[SnappingClient]->m_ViewPos.y-CheckPos.y;
+	float dx = GS()->m_apPlayers[SnappingClient]->m_ViewPos.x-CheckPos.x;
+	float dy = GS()->m_apPlayers[SnappingClient]->m_ViewPos.y-CheckPos.y;
 
 	if(absolute(dx) > 1000.0f || absolute(dy) > 800.0f)
 		return 1;
 
-	if(distance(GameServer()->m_apPlayers[SnappingClient]->m_ViewPos, CheckPos) > 1100.0f)
+	if(distance(GS()->m_apPlayers[SnappingClient]->m_ViewPos, CheckPos) > 1100.0f)
 		return 1;
 	return 0;
 }
 
 bool CEntity::GameLayerClipped(vec2 CheckPos)
 {
-	return round_to_int(CheckPos.x)/32 < -200 || round_to_int(CheckPos.x)/32 > GameServer()->Collision()->GetWidth()+200 ||
-			round_to_int(CheckPos.y)/32 < -200 || round_to_int(CheckPos.y)/32 > GameServer()->Collision()->GetHeight()+200 ? true : false;
+	return round_to_int(CheckPos.x)/32 < -200 || round_to_int(CheckPos.x)/32 > GS()->Collision()->GetWidth()+200 ||
+			round_to_int(CheckPos.y)/32 < -200 || round_to_int(CheckPos.y)/32 > GS()->Collision()->GetHeight()+200 ? true : false;
 }
 
 CAnimatedEntity::CAnimatedEntity(CGameWorld *pGameWorld, int Objtype, vec2 Pivot) :
@@ -80,7 +80,7 @@ void CAnimatedEntity::Tick()
 	float Angle = 0.0f;
 	if(m_PosEnv >= 0)
 	{
-		GetAnimationTransform(GameServer()->m_pController->GetTime(), m_PosEnv, GameServer()->Layers(), Position, Angle);
+		GetAnimationTransform(GS()->m_pController->GetTime(), m_PosEnv, GS()->Layers(), Position, Angle);
 	}
 
 	float x = (m_RelPosition.x * cosf(Angle) - m_RelPosition.y * sinf(Angle));

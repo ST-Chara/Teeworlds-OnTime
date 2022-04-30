@@ -171,9 +171,9 @@ public:
 	virtual void SetCustClt(int ClientID) = 0;
 };
 
-class IGameServer : public IInterface
+class IGS : public IInterface
 {
-	MACRO_INTERFACE("gameserver", 0)
+	MACRO_INTERFACE("gs", 0)
 protected:
 public:
 	virtual void OnInit() = 0;
@@ -204,5 +204,5 @@ public:
 	virtual class CLayers *Layers() = 0;
 };
 
-extern IGameServer *CreateGameServer();
+extern IGS *CreateGS();
 #endif

@@ -61,11 +61,11 @@ public:
 
 class CServer : public IServer
 {
-	class IGameServer *m_pGameServer;
+	class IGS *m_pGS;
 	class IConsole *m_pConsole;
 	class IStorage *m_pStorage;
 public:
-	class IGameServer *GameServer() { return m_pGameServer; }
+	class IGS *GS() { return m_pGS; }
 	class IConsole *Console() { return m_pConsole; }
 	class IStorage *Storage() { return m_pStorage; }
 
@@ -244,8 +244,6 @@ public:
 	virtual void SnapFreeID(int ID);
 	virtual void *SnapNewItem(int Type, int ID, int Size);
 	void SnapSetStaticsize(int ItemType, int Size);
-	// sixup
-	ConChainSixupUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 
 public:
 	virtual const char* GetClientLanguage(int ClientID);

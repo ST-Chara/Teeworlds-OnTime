@@ -7,17 +7,17 @@
 
 MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS)
 
-IServer *CPlayer::Server() const { return m_pGameServer->Server(); }
+IServer *CPlayer::Server() const { return m_pGS->Server(); }
 
-CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
+CPlayer::CPlayer(CGS *pGS, int ClientID, int Team)
 {
-	m_pGameServer = pGameServer;
+	m_pGS = pGS;
 	m_RespawnTick = Server()->Tick();
 	m_DieTick = Server()->Tick();
 	m_ScoreStartTick = Server()->Tick();
 	m_pCharacter = 0;
 	m_ClientID = ClientID;
-	m_Team = GameServer()->m_pController->ClampTeam(Team);
+	m_Team = GS()->m_pController->ClampTeam(Team);
 	m_SpectatorID = SPEC_FREEVIEW;
 	m_LastActionTick = Server()->Tick();
 	m_TeamChangeTick = Server()->Tick();
@@ -25,7 +25,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 
 	m_Authed = IServer::AUTHED_NO;
 
-	m_PrevTuningParams = *pGameServer->Tuning();
+	m_PrevTuningParams = *pGS->Tuning();
 	m_NextTuningParams = m_PrevTuningParams;
 
 	int* idMap = Server()->GetIdMap(ClientID);
@@ -58,7 +58,7 @@ void CPlayer::HandleTuningParams()
 		m_PrevTuningParams = m_NextTuningParams;
 	}
 
-	m_NextTuningParams = *GameServer()->Tuning();
+	m_NextTuningParams = *GS()->Tuning();
 }
 
 void CPlayer::Tick()
@@ -93,7 +93,7 @@ void CPlayer::Tick()
 		}
 	}
 
-	if(!GameServer()->m_World.m_Paused)
+	if(!GS()->m_World.m_Paused)
 	{
 		if(!m_pCharacter && m_Team == TEAM_SPECTATORS && m_SpectatorID == SPEC_FREEVIEW)
 			m_ViewPos -= vec2(clamp(m_ViewPos.x-m_LatestActivity.m_TargetX, -500.0f, 500.0f), clamp(m_ViewPos.y-m_LatestActivity.m_TargetY, -400.0f, 400.0f));
@@ -135,14 +135,14 @@ void CPlayer::PostTick()
 	{
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
-			if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS)
-				m_aActLatency[i] = GameServer()->m_apPlayers[i]->m_Latency.m_Min;
+			if(GS()->m_apPlayers[i] && GS()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS)
+				m_aActLatency[i] = GS()->m_apPlayers[i]->m_Latency.m_Min;
 		}
 	}
 
 	// update view pos for spectators
-	if(m_Team == TEAM_SPECTATORS && m_SpectatorID != SPEC_FREEVIEW && GameServer()->m_apPlayers[m_SpectatorID])
-		m_ViewPos = GameServer()->m_apPlayers[m_SpectatorID]->m_ViewPos;
+	if(m_Team == TEAM_SPECTATORS && m_SpectatorID != SPEC_FREEVIEW && GS()->m_apPlayers[m_SpectatorID])
+		m_ViewPos = GS()->m_apPlayers[m_SpectatorID]->m_ViewPos;
 }
 
 void CPlayer::Snap(int SnappingClient)
@@ -172,7 +172,7 @@ void CPlayer::Snap(int SnappingClient)
 	if(!pPlayerInfo)
 		return;
 
-	pPlayerInfo->m_Latency = SnappingClient == -1 ? m_Latency.m_Min : GameServer()->m_apPlayers[SnappingClient]->m_aActLatency[m_ClientID];
+	pPlayerInfo->m_Latency = SnappingClient == -1 ? m_Latency.m_Min : GS()->m_apPlayers[SnappingClient]->m_aActLatency[m_ClientID];
 	pPlayerInfo->m_Local = 0;
 	pPlayerInfo->m_ClientID = id;
 	pPlayerInfo->m_Score = m_Score;
@@ -223,10 +223,10 @@ void CPlayer::OnDisconnect(const char *pReason)
 			str_format(aBuf, sizeof(aBuf), "'%s' has left the game (%s)", Server()->ClientName(m_ClientID), pReason);
 		else
 			str_format(aBuf, sizeof(aBuf), "'%s' has left the game", Server()->ClientName(m_ClientID));
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+		GS()->SendChat(-1, CGS::CHAT_ALL, aBuf);
 
 		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", m_ClientID, Server()->ClientName(m_ClientID));
-		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
+		GS()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
 	}
 }
 
@@ -301,15 +301,15 @@ void CPlayer::Respawn()
 void CPlayer::SetTeam(int Team, bool DoChatMsg)
 {
 	// clamp the team
-	Team = GameServer()->m_pController->ClampTeam(Team);
+	Team = GS()->m_pController->ClampTeam(Team);
 	if(m_Team == Team)
 		return;
 
 	char aBuf[512];
 	if(DoChatMsg)
 	{
-		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(m_ClientID), GameServer()->m_pController->GetTeamName(Team));
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(m_ClientID), GS()->m_pController->GetTeamName(Team));
+		GS()->SendChat(-1, CGS::CHAT_ALL, aBuf);
 	}
 
 	KillCharacter();
@@ -320,17 +320,17 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	// we got to wait 0.5 secs before respawning
 	m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' m_Team=%d", m_ClientID, Server()->ClientName(m_ClientID), m_Team);
-	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+	GS()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
-	GameServer()->m_pController->OnPlayerInfoChange(GameServer()->m_apPlayers[m_ClientID]);
+	GS()->m_pController->OnPlayerInfoChange(GS()->m_apPlayers[m_ClientID]);
 
 	if(Team == TEAM_SPECTATORS)
 	{
 		// update spectator modes
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
-			if(GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->m_SpectatorID == m_ClientID)
-				GameServer()->m_apPlayers[i]->m_SpectatorID = SPEC_FREEVIEW;
+			if(GS()->m_apPlayers[i] && GS()->m_apPlayers[i]->m_SpectatorID == m_ClientID)
+				GS()->m_apPlayers[i]->m_SpectatorID = SPEC_FREEVIEW;
 		}
 	}
 }
@@ -339,13 +339,13 @@ void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
-	if(!GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos))
+	if(!GS()->m_pController->CanSpawn(m_Team, &SpawnPos))
 		return;
 
 	m_Spawning = false;
-	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World);
+	m_pCharacter = new(m_ClientID) CCharacter(&GS()->m_World);
 	m_pCharacter->Spawn(this, SpawnPos);
-	GameServer()->CreatePlayerSpawn(SpawnPos);
+	GS()->CreatePlayerSpawn(SpawnPos);
 }
 
 const char* CPlayer::GetLanguage()

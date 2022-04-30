@@ -24,13 +24,13 @@ class CEventHandler
 	int64_t m_aClientMasks[MAX_EVENTS];
 	char m_aData[MAX_DATASIZE];
 
-	class CGameContext *m_pGameServer;
+	class CGS *m_pGS;
 
 	int m_CurrentOffset;
 	int m_NumEvents;
 public:
-	CGameContext *GameServer() const { return m_pGameServer; }
-	void SetGameServer(CGameContext *pGameServer);
+	CGS *GS() const { return m_pGS; }
+	void SetGS(CGS *pGS);
 
 	CEventHandler();
 	void *Create(int Type, int Size, int64_t Mask = -1LL);

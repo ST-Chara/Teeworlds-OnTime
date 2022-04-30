@@ -72,7 +72,7 @@ public:
 	virtual ~CEntity();
 
 	class CGameWorld *GameWorld() { return m_pGameWorld; }
-	class CGameContext *GameServer() { return GameWorld()->GameServer(); }
+	class CGS *GS() { return GameWorld()->GS(); }
 	class IServer *Server() { return GameWorld()->Server(); }
 
 

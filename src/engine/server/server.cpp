@@ -292,7 +292,7 @@ CServer::CServer() : m_DemoRecorder(&m_SnapshotDelta)
 {
 	m_TickSpeed = SERVER_TICK_SPEED;
 
-	m_pGameServer = 0;
+	m_pGS = 0;
 
 	m_CurrentGameTick = 0;
 	m_RunServer = 1;
@@ -577,7 +577,7 @@ int CServer::SendMsgEx(CMsgPacker *pMsg, int Flags, int ClientID, bool System)
 
 void CServer::DoSnapshot()
 {
-	GameServer()->OnPreSnap();
+	GS()->OnPreSnap();
 
 	// create snapshot for demo recording
 	if(m_DemoRecorder.IsRecording())
@@ -587,7 +587,7 @@ void CServer::DoSnapshot()
 
 		// build snap and possibly add some messages
 		m_SnapshotBuilder.Init();
-		GameServer()->OnSnap(-1);
+		GS()->OnSnap(-1);
 		SnapshotSize = m_SnapshotBuilder.Finish(aData);
 
 		// write snapshot
@@ -624,7 +624,7 @@ void CServer::DoSnapshot()
 
 			m_SnapshotBuilder.Init();
 
-			GameServer()->OnSnap(i);
+			GS()->OnSnap(i);
 
 			// finish snapshot
 			SnapshotSize = m_SnapshotBuilder.Finish(pData);
@@ -704,7 +704,7 @@ void CServer::DoSnapshot()
 		}
 	}
 
-	GameServer()->OnPostSnap();
+	GS()->OnPostSnap();
 }
 
 int CServer::NewClientNoAuthCallback(int ClientID, void *pUser)
@@ -753,7 +753,7 @@ int CServer::DelClientCallback(int ClientID, const char *pReason, void *pUser)
 
 	// notify the mod about the drop
 	if(pThis->m_aClients[ClientID].m_State >= CClient::STATE_READY)
-		pThis->GameServer()->OnClientDrop(ClientID, pReason);
+		pThis->GS()->OnClientDrop(ClientID, pReason);
 
 	pThis->m_aClients[ClientID].m_State = CClient::STATE_EMPTY;
 	pThis->m_aClients[ClientID].m_aName[0] = 0;
@@ -860,11 +860,11 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && m_aClients[ClientID].m_State == CClient::STATE_AUTH)
 			{
 				const char *pVersion = Unpacker.GetString(CUnpacker::SANITIZE_CC);
-				if((str_comp(pVersion, GameServer()->NetVersion()) != 0) && (str_comp(pVersion, "0.6 626fce9a778df4d4") != 0))
+				if((str_comp(pVersion, GS()->NetVersion()) != 0) && (str_comp(pVersion, "0.6 626fce9a778df4d4") != 0))
 				{
 					// wrong version
 					char aReason[256];
-					str_format(aReason, sizeof(aReason), "Wrong version. Server is running '%s' and client '%s'", GameServer()->NetVersion(), pVersion);
+					str_format(aReason, sizeof(aReason), "Wrong version. Server is running '%s' and client '%s'", GS()->NetVersion(), pVersion);
 					m_NetServer.Drop(ClientID, aReason);
 					return;
 				}
@@ -929,13 +929,13 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				str_format(aBuf, sizeof(aBuf), "player is ready. ClientID=%x addr=%s secure=%s", ClientID, aAddrStr, m_NetServer.HasSecurityToken(ClientID)?"yes":"no");
 				Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "server", aBuf);
 				m_aClients[ClientID].m_State = CClient::STATE_READY;
-				GameServer()->OnClientConnected(ClientID);
+				GS()->OnClientConnected(ClientID);
 				SendConnectionReady(ClientID);
 			}
 		}
 		else if(Msg == NETMSG_ENTERGAME)
 		{
-			if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && m_aClients[ClientID].m_State == CClient::STATE_READY && GameServer()->IsClientReady(ClientID))
+			if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && m_aClients[ClientID].m_State == CClient::STATE_READY && GS()->IsClientReady(ClientID))
 			{
 				char aAddrStr[NETADDR_MAXSTRSIZE];
 				net_addr_str(m_NetServer.ClientAddr(ClientID), aAddrStr, sizeof(aAddrStr), true);
@@ -944,7 +944,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				str_format(aBuf, sizeof(aBuf), "player has entered the game. ClientID=%x addr=%s", ClientID, aAddrStr);
 				Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 				m_aClients[ClientID].m_State = CClient::STATE_INGAME;
-				GameServer()->OnClientEnter(ClientID);
+				GS()->OnClientEnter(ClientID);
 			}
 		}
 		else if(Msg == NETMSG_INPUT)
@@ -997,7 +997,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 
 			// call the mod with the fresh input data
 			if(m_aClients[ClientID].m_State == CClient::STATE_INGAME)
-				GameServer()->OnClientDirectInput(ClientID, m_aClients[ClientID].m_LatestInput.m_aData);
+				GS()->OnClientDirectInput(ClientID, m_aClients[ClientID].m_LatestInput.m_aData);
 		}
 		else if(Msg == NETMSG_RCON_CMD)
 		{
@@ -1053,7 +1053,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 					SendMsgEx(&Msg, MSGFLAG_VITAL, ClientID, true);
 
 					m_aClients[ClientID].m_Authed = AUTHED_ADMIN;
-					GameServer()->OnSetAuthed(ClientID, m_aClients[ClientID].m_Authed);
+					GS()->OnSetAuthed(ClientID, m_aClients[ClientID].m_Authed);
 					int SendRconCmds = Unpacker.GetInt();
 					if(Unpacker.Error() == 0 && SendRconCmds)
 						m_aClients[ClientID].m_pRconCmdToSend = Console()->FirstCommandInfo(IConsole::ACCESS_LEVEL_ADMIN, CFGFLAG_SERVER);
@@ -1129,7 +1129,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 	{
 		// game message
 		if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && m_aClients[ClientID].m_State >= CClient::STATE_READY)
-			GameServer()->OnMessage(Msg, &Unpacker, ClientID);
+			GS()->OnMessage(Msg, &Unpacker, ClientID);
 	}
 }
 
@@ -1146,7 +1146,7 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, bool Extended, int
 	{
 		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
-			if(GameServer()->IsClientPlayer(i))
+			if(GS()->IsClientPlayer(i))
 				PlayerCount++;
 
 			ClientCount++;
@@ -1163,7 +1163,7 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, bool Extended, int
 	str_format(aBuf, sizeof(aBuf), "%d", Token);
 	p.AddString(aBuf, 6);
 
-	p.AddString(GameServer()->Version(), 32);
+	p.AddString(GS()->Version(), 32);
 	if (Extended)
 	{
 		if (MaxClients <= MAX_CLIENTS)
@@ -1191,11 +1191,11 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, bool Extended, int
 	// gametype
 	if(MaxClients > VANILLA_MAX_CLIENTS)
 	{
-		str_format(aBuf, sizeof(aBuf), "%s%d", GameServer()->GameType(), 64);
+		str_format(aBuf, sizeof(aBuf), "%s%d", GS()->GameType(), 64);
 		p.AddString(aBuf, 16);
 	}
 	else
-		p.AddString(GameServer()->GameType(), 16);
+		p.AddString(GS()->GameType(), 16);
 
 	// flags
 	int i = 0;
@@ -1244,7 +1244,7 @@ void CServer::SendServerInfo(const NETADDR *pAddr, int Token, bool Extended, int
 			p.AddString(ClientClan(i), MAX_CLAN_LENGTH); // client clan
 			str_format(aBuf, sizeof(aBuf), "%d", m_aClients[i].m_Country); p.AddString(aBuf, 6); // client country
 			str_format(aBuf, sizeof(aBuf), "%d", m_aClients[i].m_Score); p.AddString(aBuf, 6); // client score
-			str_format(aBuf, sizeof(aBuf), "%d", GameServer()->IsClientPlayer(i)?1:0); p.AddString(aBuf, 2); // is player?
+			str_format(aBuf, sizeof(aBuf), "%d", GS()->IsClientPlayer(i)?1:0); p.AddString(aBuf, 2); // is player?
 		}
 	}
 
@@ -1432,8 +1432,8 @@ int CServer::Run()
 	str_format(aBuf, sizeof(aBuf), "server name is '%s'", g_Config.m_SvName);
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 
-	GameServer()->OnInit();
-	str_format(aBuf, sizeof(aBuf), "version %s", GameServer()->NetVersion());
+	GS()->OnInit();
+	str_format(aBuf, sizeof(aBuf), "version %s", GS()->NetVersion());
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 
 	// process pending commands
@@ -1467,7 +1467,7 @@ int CServer::Run()
 				if(LoadMap(g_Config.m_SvMap))
 				{
 					// new map loaded
-					GameServer()->OnShutdown();
+					GS()->OnShutdown();
 
 					for(int c = 0; c < MAX_CLIENTS; c++)
 					{
@@ -1481,8 +1481,8 @@ int CServer::Run()
 
 					m_GameStartTime = time_get();
 					m_CurrentGameTick = 0;
-					Kernel()->ReregisterInterface(GameServer());
-					GameServer()->OnInit();
+					Kernel()->ReregisterInterface(GS());
+					GS()->OnInit();
 					UpdateServerInfo();
 				}
 				else
@@ -1508,13 +1508,13 @@ int CServer::Run()
 						if(m_aClients[c].m_aInputs[i].m_GameTick == Tick())
 						{
 							if(m_aClients[c].m_State == CClient::STATE_INGAME)
-								GameServer()->OnClientPredictedInput(c, m_aClients[c].m_aInputs[i].m_aData);
+								GS()->OnClientPredictedInput(c, m_aClients[c].m_aInputs[i].m_aData);
 							break;
 						}
 					}
 				}
 
-				GameServer()->OnTick();
+				GS()->OnTick();
 			}
 
 			// snap game
@@ -1569,7 +1569,7 @@ int CServer::Run()
 		m_Econ.Shutdown();
 	}
 
-	GameServer()->OnShutdown();
+	GS()->OnShutdown();
 	m_pMap->Unload();
 
 	if(m_pCurrentMapData)
@@ -1628,7 +1628,7 @@ void CServer::DemoRecorder_HandleAutoStart()
 		char aDate[20];
 		str_timestamp(aDate, sizeof(aDate));
 		str_format(aFilename, sizeof(aFilename), "demos/%s_%s.demo", "auto/autorecord", aDate);
-		m_DemoRecorder.Start(Storage(), m_pConsole, aFilename, GameServer()->NetVersion(), m_aCurrentMap, m_CurrentMapCrc, "server");
+		m_DemoRecorder.Start(Storage(), m_pConsole, aFilename, GS()->NetVersion(), m_aCurrentMap, m_CurrentMapCrc, "server");
 		if(g_Config.m_SvAutoDemoMax)
 		{
 			// clean up auto recorded demos
@@ -1656,7 +1656,7 @@ void CServer::ConRecord(IConsole::IResult *pResult, void *pUser)
 		str_timestamp(aDate, sizeof(aDate));
 		str_format(aFilename, sizeof(aFilename), "demos/demo_%s.demo", aDate);
 	}
-	pServer->m_DemoRecorder.Start(pServer->Storage(), pServer->Console(), aFilename, pServer->GameServer()->NetVersion(), pServer->m_aCurrentMap, pServer->m_CurrentMapCrc, "server");
+	pServer->m_DemoRecorder.Start(pServer->Storage(), pServer->Console(), aFilename, pServer->GS()->NetVersion(), pServer->m_aCurrentMap, pServer->m_CurrentMapCrc, "server");
 }
 
 void CServer::ConStopRecord(IConsole::IResult *pResult, void *pUser)
@@ -1747,7 +1747,7 @@ void CServer::ConchainConsoleOutputLevelUpdate(IConsole::IResult *pResult, void 
 void CServer::RegisterCommands()
 {
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
-	m_pGameServer = Kernel()->RequestInterface<IGameServer>();
+	m_pGS = Kernel()->RequestInterface<IGS>();
 	m_pMap = Kernel()->RequestInterface<IEngineMap>();
 	m_pStorage = Kernel()->RequestInterface<IStorage>();
 
@@ -1769,11 +1769,9 @@ void CServer::RegisterCommands()
 	Console()->Chain("mod_command", ConchainModCommandUpdate, this);
 	Console()->Chain("console_output_level", ConchainConsoleOutputLevelUpdate, this);
 
-	// sixup
-	Console()->Chain("sv_sixup", ConChainSixupUpdate, this);
 	// register console commands in sub parts
 	m_ServerBan.InitServerBan(Console(), Storage(), this);
-	m_pGameServer->OnConsoleInit();
+	m_pGS->OnConsoleInit();
 }
 
 
@@ -1837,7 +1835,7 @@ int main(int argc, const char **argv) // ignore_convention
 	// create the components
 	IEngine *pEngine = CreateEngine("Teeworlds");
 	IEngineMap *pEngineMap = CreateEngineMap();
-	IGameServer *pGameServer = CreateGameServer();
+	IGS *pGS = CreateGS();
 	IConsole *pConsole = CreateConsole(CFGFLAG_SERVER|CFGFLAG_ECON);
 	IEngineMasterServer *pEngineMasterServer = CreateEngineMasterServer();
 	IStorage *pStorage = CreateStorage("Teeworlds", IStorage::STORAGETYPE_SERVER, argc, argv); // ignore_convention
@@ -1860,7 +1858,7 @@ int main(int argc, const char **argv) // ignore_convention
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pEngine);
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IEngineMap*>(pEngineMap)); // register as both
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IMap*>(pEngineMap));
-		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pGameServer);
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pGS);
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pConsole);
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pStorage);
 		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pConfig);
@@ -1901,18 +1899,10 @@ int main(int argc, const char **argv) // ignore_convention
 	delete pServer;
 	delete pKernel;
 	delete pEngineMap;
-	delete pGameServer;
+	delete pGS;
 	delete pConsole;
 	delete pEngineMasterServer;
 	delete pStorage;
 	delete pConfig;
 	return 0;
-}
-// sixup
-void CServer::ConChainSixupUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
-{
-	pfnCallback(pResult, pCallbackUserData);
-	CServer *pThis = static_cast<CServer *>(pUserData);
-	if(pResult->NumArguments() >= 1 && pThis->m_aCurrentMap[0] != '\0')
-		pThis->m_MapReload |= (pThis->m_apCurrentMapData[MAP_TYPE_SIXUP] != 0) != (pResult->GetInteger(0) != 0);
 }

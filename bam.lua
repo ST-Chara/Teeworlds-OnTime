@@ -221,6 +221,8 @@ function build(settings)
 	-- build the small libraries
 	json = Compile(settings, "src/engine/external/json-parser/json.c")
 	md5 = Compile(settings, Collect("src/engine/external/md5/*.c"))
+	settings.cc.includes:Add("src/engine/external/sqlite3")
+	sqlite3 = Compile(settings, Collect("src/engine/external/sqlite3/*.c"))
 
 	-- build game components
 	engine_settings = settings:Copy()
@@ -269,7 +271,7 @@ function build(settings)
 
 	-- build server
 	server_exe = Link(server_settings, "teeworlds_srv", engine, server,
-		game_shared, game_server, zlib, md5, server_link_other, json, teeuniverses)
+		game_shared, game_server, zlib, md5, server_link_other, json, teeuniverses, sqlite3)
 
 	serverlaunch = {}
 	if platform == "macosx" then

@@ -16,6 +16,7 @@
 #include "gamecontroller.h"
 #include "gameworld.h"
 #include "player.h"
+#include "OnTime/account.h"
 
 #ifdef _MSC_VER
 typedef __int32 int32_t;
@@ -28,7 +29,7 @@ typedef unsigned __int64 uint64_t;
 
 /*
 	Tick
-		Game Context (CGameContext::tick)
+		Game Context (CGS::tick)
 			Game World (GAMEWORLD::tick)
 				Reset world if requested (GAMEWORLD::reset)
 				All entities in the world (ENTITY::tick)
@@ -39,7 +40,7 @@ typedef unsigned __int64 uint64_t;
 
 
 	Snap
-		Game Context (CGameContext::snap)
+		Game Context (CGS::snap)
 			Game World (GAMEWORLD::snap)
 				All entities in the world (ENTITY::snap)
 			Game Controller (GAMECONTROLLER::snap)
@@ -47,7 +48,7 @@ typedef unsigned __int64 uint64_t;
 			All players (CPlayer::snap)
 
 */
-class CGameContext : public IGameServer
+class CGS : public IGS
 {
 	IServer *m_pServer;
 	class IConsole *m_pConsole;
@@ -80,7 +81,7 @@ class CGameContext : public IGameServer
 	static void ConVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
-	CGameContext(int Resetting);
+	CGS(int Resetting);
 	void Construct(int Resetting);
 
 	bool m_Resetting;
@@ -97,9 +98,10 @@ public:
 	CCollision *Collision() { return &m_Collision; }
 	CTuningParams *Tuning() { return &m_Tuning; }
 	virtual class CLayers *Layers() { return &m_Layers; }
+	
 
-	CGameContext();
-	~CGameContext();
+	CGS();
+	~CGS();
 
 	void Clear();
 
@@ -201,7 +203,46 @@ public:
 	virtual const char *GameType();
 	virtual const char *Version();
 	virtual const char *NetVersion();
+	// - SQL
+	CSql *m_pDatabase;
+	void Register(const char *Username, const char *Password, int ClientID); // Register account
+	void Login(const char *Username, const char *Password, int ClientID); // Login account
+	bool Apply(const char *Username, const char *Password, int ClientID, const char *Language, int AccID, 
+				int m_Level, int m_Exp, unsigned int m_Money); // Apply account
 };
+
+class CQueryBase : public CQuery
+{
+public:
+	int m_ClientID;
+	const char *Username;
+	const char *Password;
+	const char *Language;
+	CGS *m_pGameServer;
+};
+
+class CQueryRegister: public CQueryBase
+{
+	void OnData();
+public:
+};
+
+class CQueryLogin: public CQueryBase
+{
+	void OnData();
+public:
+
+};
+
+class CQueryApply: public CQueryBase
+{
+	void OnData();
+public:
+	int m_Level;
+	int m_Exp; 
+	unsigned int m_Money;
+};
+
 
 inline int64_t CmaskAll() { return -1LL; }
 inline int64_t CmaskOne(int ClientID) { return 1LL<<ClientID; }
