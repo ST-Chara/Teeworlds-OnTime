@@ -1,0 +1,20 @@
+
+name: Compile server
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Install bam
+        run: |
+          sudo apt update
+          sudo apt install bam libfreetype6-dev libsdl2-dev libpnglite-dev libwavpack-dev python3 build-essential cmake libicu-dev -y
+          bam server_debug
+      - name: Test running
+        run:
+          ./teeworlds_srv_d shutdown
