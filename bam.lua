@@ -232,6 +232,9 @@ function build(settings)
 	if family == "unix" then
 		if platform == "macosx" then
 			launcher_settings.link.frameworks:Add("Cocoa")
+		else
+			server_settings.link.libs:Add("ssl")
+			server_settings.link.libs:Add("crypto")
 		end
 
 	elseif family == "windows" then
@@ -257,6 +260,12 @@ function build(settings)
 		end
 	end
 	
+	if family == "unix" and (platform == "macosx" or platform == "linux") then
+		engine_settings.link.libs:Add("dl")
+		server_settings.link.libs:Add("dl")
+		launcher_settings.link.libs:Add("dl")
+	end
+
 	engine = Compile(engine_settings, Collect("src/engine/shared/*.cpp", "src/base/*.c"))
 	server = Compile(server_settings, Collect("src/engine/server/*.cpp"))
 	teeuniverses = Compile(server_settings, Collect("src/teeuniverses/*.cpp", "src/teeuniverses/components/*.cpp", "src/teeuniverses/system/*.cpp"))
