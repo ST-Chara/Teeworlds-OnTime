@@ -154,6 +154,10 @@ public:
 			Contains the current posititon of the entity.
 	*/
 	vec2 m_Pos;
+
+	bool m_Visible;
+	int m_Value;
+	int64 m_LastClick;
 };
 
 class CAnimatedEntity : public CEntity

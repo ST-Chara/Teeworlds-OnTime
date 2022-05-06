@@ -340,5 +340,15 @@ Messages = [
 		NetStringStrict("m_Value"),
 		NetStringStrict("m_Reason"),
 	]),
+	
 	NetMessage("Cl_IsDDRace64", []),
+
+	NetMessage("Cl_IsOffTimeMod", []),
+
+	NetMessage("Sv_Player", [
+		NetIntAny("Life"),
+		NetIntAny("Level"),
+		NetIntAny("Exp"),
+		NetIntAny("Time"),
+	]),
 ]

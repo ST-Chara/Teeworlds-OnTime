@@ -64,6 +64,12 @@ public:
 	bool IsAlive() const { return m_Alive; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 
+	int m_Menu;
+	int64 m_BuyTick;
+	
+	void ChangeUpgrade(int Value);
+	void Buy(const char *Name, int *Upgrade, long long unsigned Price, int Click, int Max);
+	int MouseEvent(vec2 Pos);
 private:
 	// player controlling this character
 	class CPlayer *m_pPlayer;

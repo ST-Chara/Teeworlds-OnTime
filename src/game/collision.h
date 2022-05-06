@@ -45,6 +45,9 @@ public:
 	//This function return an Handle to access all zone layers with the name "pName"
 	int GetZoneHandle(const char* pName);
 	int GetZoneValueAt(int ZoneHandle, float x, float y);
+	int GetZoneValueAt(int ZoneHandle, vec2 Pos);
+
+	bool IsShopTile(vec2 Pos);
 };
 
 #endif

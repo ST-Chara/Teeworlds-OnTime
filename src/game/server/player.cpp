@@ -3,7 +3,7 @@
 #include <new>
 #include <engine/shared/config.h>
 #include "player.h"
-
+#include "OnTime/Cmds.h"
 
 MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS)
 
@@ -34,6 +34,9 @@ CPlayer::CPlayer(CGS *pGS, int ClientID, int Team)
 	    idMap[i] = -1;
 	}
 	idMap[0] = ClientID;
+
+	m_pAccount = new CAccount(this, m_pGS);
+	m_pChatCmd = new CCmd(this, m_pGS);	
 }
 
 CPlayer::~CPlayer()

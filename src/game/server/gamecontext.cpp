@@ -23,7 +23,6 @@ void CQueryRegister::OnData()
 	{
 		if(m_pDatabase->Register(Username, Password, Language, m_ClientID))
 		{
-			char aBuf[256];
 			m_pGameServer->SendChatTarget(m_ClientID, _("~~~~~~~~ ! Registered ! ~~~~~~~~"));
 			m_pGameServer->SendChatTarget(m_ClientID, _("Username: {str:Username}"), "Username", Username);
 			m_pGameServer->SendChatTarget(m_ClientID, _("Password: {str:Password}"), "Password", Password);
@@ -45,7 +44,7 @@ void CQueryLogin::OnData()
 			str_format(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Password, sizeof(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Password), GetText(GetID("Password")));
 			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Exp = GetInt(GetID("Exp"));
 			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Level = GetInt(GetID("Level"));
-			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Money = GetInt(GetID("Money"));
+			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Lifes = GetInt(GetID("Lifes"));
 			m_pGameServer->Server()->SetClientLanguage(m_ClientID, GetText(GetID("Language")));
 			m_pGameServer->m_apPlayers[m_ClientID]->SetTeam(TEAM_RED);
 			m_pGameServer->SendChatTarget(m_ClientID, _("Successfully logged in! Have fun while playing!"));
@@ -66,7 +65,7 @@ void CQueryApply::OnData()
 		m_pDatabase->Apply(Username, Password, Language, m_ClientID, 
 		m_Exp, 
 		m_Level, 
-		m_Money);
+		m_Lifes);
 	}
 }
 
@@ -735,21 +734,24 @@ void CGS::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			
 			if(pMsg->m_pMessage[0] == '/' || pMsg->m_pMessage[0] == '\\')
 			{
-				switch(m_apPlayers[ClientID]->m_Authed)
+				if(!pPlayer->m_pChatCmd->ChatCmd(pMsg))
 				{
-					case IServer::AUTHED_ADMIN:
-						Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
-						break;
-					case IServer::AUTHED_MOD:
-						Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_MOD);
-						break;
-					default:
-						Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
-				}	
-				
-				Console()->ExecuteLineFlag(pMsg->m_pMessage + 1, ClientID, CFGFLAG_CHAT);
-				
-				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
+					switch(m_apPlayers[ClientID]->m_Authed)
+					{
+						case IServer::AUTHED_ADMIN:
+							Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
+							break;
+						case IServer::AUTHED_MOD:
+							Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_MOD);
+							break;
+						default:
+							Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
+					}	
+
+					Console()->ExecuteLineFlag(pMsg->m_pMessage + 1, ClientID, CFGFLAG_CHAT);
+
+					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);	
+				}
 			}
 			else
 			{
@@ -911,12 +913,20 @@ void CGS::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		}
 		else if(MsgID == NETMSGTYPE_CL_VOTE)
 		{
+			CNetMsg_Cl_Vote *pMsg = (CNetMsg_Cl_Vote *)pRawMsg;
 			if(!m_VoteCloseTime)
-				return;
+			{
+				if(!pMsg->m_Vote)
+					return;
 
+				CCharacter *pOwner = GetPlayerChar(pPlayer->GetCID());
+				
+				if(pOwner)
+					pOwner->ChangeUpgrade(pMsg->m_Vote);
+				return;
+			}
 			if(pPlayer->m_Vote == 0)
 			{
-				CNetMsg_Cl_Vote *pMsg = (CNetMsg_Cl_Vote *)pRawMsg;
 				if(!pMsg->m_Vote)
 					return;
 
@@ -1036,6 +1046,10 @@ void CGS::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->m_LastKill = Server()->Tick();
 			pPlayer->KillCharacter(WEAPON_SELF);
 		}
+	}
+	else if(MsgID == NETMSGTYPE_CL_ISOFFTIMEMOD)
+	{
+		pPlayer->m_IsOffTimeClient = true;
 	}
 	else
 	{
@@ -1702,7 +1716,7 @@ void CGS::OnInit(/*class IKernel *pKernel*/)
 
 	//Get zones
 	m_ZoneHandle_TeeWorlds = m_Collision.GetZoneHandle("teeworlds");
-
+	m_ZoneHandle_OnTime = m_Collision.GetZoneHandle("offtime");
 	// reset everything here
 	//world = new GAMEWORLD;
 	//players = new CPlayer[MAX_CLIENTS];
@@ -1743,37 +1757,13 @@ void CGS::OnInit(/*class IKernel *pKernel*/)
 				switch(Index - ENTITY_OFFSET)
 				{
 					case ENTITY_SPAWN:
-						m_pController->OnEntity("twSpawn", Pivot, P0, P1, P2, P3, -1);
+						m_pController->OnEntity("spawn", Pivot, P0, P1, P2, P3, -1);
 						break;
 					case ENTITY_SPAWN_RED:
-						m_pController->OnEntity("twSpawnRed", Pivot, P0, P1, P2, P3, -1);
+						m_pController->OnEntity("spawnRed", Pivot, P0, P1, P2, P3, -1);
 						break;
 					case ENTITY_SPAWN_BLUE:
-						m_pController->OnEntity("twSpawnBlue", Pivot, P0, P1, P2, P3, -1);
-						break;
-					case ENTITY_FLAGSTAND_RED:
-						m_pController->OnEntity("twFlagStandRed", Pivot, P0, P1, P2, P3, -1);
-						break;
-					case ENTITY_FLAGSTAND_BLUE:
-						m_pController->OnEntity("twFlagStandBlue", Pivot, P0, P1, P2, P3, -1);
-						break;
-					case ENTITY_ARMOR_1:
-						m_pController->OnEntity("twArmor", Pivot, P0, P1, P2, P3, -1);
-						break;
-					case ENTITY_HEALTH_1:
-						m_pController->OnEntity("twHealth", Pivot, P0, P1, P2, P3, -1);
-						break;
-					case ENTITY_WEAPON_SHOTGUN:
-						m_pController->OnEntity("twShotgun", Pivot, P0, P1, P2, P3, -1);
-						break;
-					case ENTITY_WEAPON_GRENADE:
-						m_pController->OnEntity("twGrenade", Pivot, P0, P1, P2, P3, -1);
-						break;
-					case ENTITY_POWERUP_NINJA:
-						m_pController->OnEntity("twNinja", Pivot, P0, P1, P2, P3, -1);
-						break;
-					case ENTITY_WEAPON_RIFLE:
-						m_pController->OnEntity("twRifle", Pivot, P0, P1, P2, P3, -1);
+						m_pController->OnEntity("spawnRed", Pivot, P0, P1, P2, P3, -1);
 						break;
 				}
 			}
@@ -1901,7 +1891,7 @@ void CGS::Login(const char *Username, const char *Password, int ClientID)
 	sqlite3_free(pQueryBuf);
 }
 
-bool CGS::Apply(const char *Username, const char *Password, int ClientID, const char *Language, int AccID, int m_Level, int m_Exp, unsigned int m_Money)
+bool CGS::Apply(const char *Username, const char *Password, int ClientID, const char *Language, int AccID, int m_Level, int m_Exp, unsigned int m_Lifes)
 {
 	char *pQueryBuf = sqlite3_mprintf("SELECT * FROM Accounts WHERE Username='%q'", Username);
 	CQueryApply *pQuery = new CQueryApply();

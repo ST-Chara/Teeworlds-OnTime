@@ -8,6 +8,7 @@
 #include "character.h"
 #include "laser.h"
 #include "projectile.h"
+#include "game/server/OnTime/Shop/Core/ShopCore.h"
 
 //input count
 struct CInputCount
@@ -75,6 +76,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 
 	GS()->m_World.InsertEntity(this);
 	m_Alive = true;
+	new CGui(GameWorld(), m_pPlayer->GetCID());
 
 	GS()->m_pController->OnCharacterSpawn(this);
 
@@ -863,4 +865,91 @@ void CCharacter::Snap(int SnappingClient)
 	}
 
 	pCharacter->m_PlayerFlags = GetPlayer()->m_PlayerFlags;
+}
+
+int CCharacter::MouseEvent(vec2 Pos)
+{
+	if(distance(Pos, m_Pos+vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY)) < 64)
+	{
+		if(m_Input.m_Hook)
+		{
+			m_Input.m_Hook = 0;
+			return 1;
+		}
+
+		if((m_Input.m_Fire&1) != 0)
+			return -1;
+
+		return 2;
+	}
+	
+	//m_LastBroadcast = 0;
+
+	return 0;
+}
+
+void CCharacter::Buy(const char *Name, int *Upgrade, long long unsigned Price, int Click, int Max)
+{
+	char aBuf[128];
+	char numBuf[2][16];
+	const char* pLanguage = GetPlayer()->GetLanguage();
+	dynamic_string Buffer;
+
+	Price = floor(Price * pow(*Upgrade + 1, 2.0) * pow(*Upgrade + 1, -1.7));
+
+	if(Click == 1)
+	{
+		if(*Upgrade < Max)
+		{
+			if(m_pPlayer->m_AccData.m_Lifes >= Price)
+			{
+				if(Server()->Tick() - m_BuyTick > 25)
+				{
+					*Upgrade += 1;
+					m_pPlayer->m_AccData.m_Lifes -= Price;
+					str_format(aBuf, sizeof(aBuf), "%s (%d/%d)", Name, *Upgrade, Max);
+
+					m_BuyTick = Server()->Tick();
+					GS()->SendChatTarget(m_pPlayer->GetCID(), aBuf);
+					Server()->Localization()->Format_L(Buffer, pLanguage, _("Lifes: {int:m}$"), "m", &m_pPlayer->m_AccData.m_Lifes, NULL);
+					GS()->SendBroadcast(Buffer.buffer(), m_pPlayer->GetCID());
+				}
+			}
+			else
+			{
+				Server()->Localization()->Format_L(Buffer, pLanguage, _("Not enough Lifes\n{str:Name}: {int:nb0}$\nLifes: {int:nb1}$"), "Name", Name, "nb0", &Price, "nb1", &m_pPlayer->m_AccData.m_Lifes, NULL);
+				GS()->SendBroadcast(Buffer.buffer(), m_pPlayer->GetCID());
+			}
+		}
+		else
+		{
+			Server()->Localization()->Format_L(Buffer, pLanguage, _("Maximum '{str:Name}' ({int:Upgr}/{int:Max})"), "Name", Name, "Upgr", &*Upgrade, "Max", &Max, NULL);
+			GS()->SendBroadcast(Buffer.buffer(), m_pPlayer->GetCID());
+		}
+	}
+	else if(Click == 2)
+	{
+		Server()->Localization()->Format_L(Buffer, pLanguage, _("{str:Name} ({int:upgr}/{int:max})\nCost: {int:cost}$\nLifes: {int:Lifes}$"), 
+		"Name", Name, 
+		"upgr", &*Upgrade, 
+		"max", &Max, 
+		"cost", &Price, 
+		"Lifes", &m_pPlayer->m_AccData.m_Lifes, NULL);
+		GS()->SendBroadcast(Buffer.buffer(), m_pPlayer->GetCID());
+	}
+}
+
+void CCharacter::ChangeUpgrade(int Value)
+{
+	if(GS()->Collision()->IsShopTile(m_Pos))
+	{
+		m_Menu += Value;
+
+		if(m_Menu < 0) 
+			m_Menu = 0;
+		if(m_Menu > 7)
+			m_Menu = 7;
+
+		return;
+	}
 }

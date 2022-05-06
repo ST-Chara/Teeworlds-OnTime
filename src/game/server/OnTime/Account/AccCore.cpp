@@ -1,7 +1,7 @@
 /* (c) GutZuFusss. See licence.txt in the root of the distribution for more information.     */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
-#include "account.h"
-#include "../gamecontext.h"
+#include "AccCore.h"
+#include "../../gamecontext.h"
 #include <engine/server/crypt.h>
 
 bool CQuery::Next()
@@ -127,10 +127,14 @@ CSql::CSql()
         "Language                   TEXT            NOT NULL," \
 		"Exp                        INTEGER         NOT NULL        DEFAULT 0," \
         "Level                      INTEGER         NOT NULL        DEFAULT 1," \
-        "Money                      INTEGER         NOT NULL        DEFAULT 0);";
+        "Lifes                      INTEGER         NOT NULL        DEFAULT 50," \
+        "Weapons                    INTEGER         NOT NULL        DEFAULT 0);";
 
-    sqlite3_exec(m_pDB, pQuery, 0, 0, 0);
+    char *pErrorMsg;
 
+    sqlite3_exec(m_pDB, pQuery, 0, 0, &pErrorMsg);
+
+    dbg_msg("SQLite3","Error msg: %s",pErrorMsg);
     m_Lock = lock_create();
     m_Running = true;
     thread_init(InitWorker, this);
@@ -193,11 +197,11 @@ bool CSql::Login(const char *Username, const char *Password, int ClientID)
 }
 
 bool CSql::Apply(const char *Username, const char *Password, const char *Language, 
-                int AccID, int m_Level, int m_Exp, unsigned int m_Money)
+                int AccID, int m_Level, int m_Exp, unsigned int m_Lifes)
 {
     char pQuery[300];
     
-    str_format(pQuery, sizeof(pQuery), (char *)"UPDATE Accounts SET Exp=%d,Level=%d,Money=%d WHERE ID=%d;", m_Exp, m_Level, m_Money, AccID);
+    str_format(pQuery, sizeof(pQuery), (char *)"UPDATE Accounts SET Exp=%d,Level=%d,Lifes=%d, WHERE ID=%d;", m_Exp, m_Level, m_Lifes, AccID);
 
     int nRet=0;
     char *pErrorMsg;

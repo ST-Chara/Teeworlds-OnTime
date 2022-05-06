@@ -102,4 +102,5 @@ MACRO_CONFIG_INT(DbgTuning, dbg_tuning, 0, 0, 1, CFGFLAG_CLIENT, "")
 
 MACRO_CONFIG_INT(SvMapUpdateRate, sv_mapupdaterate, 5, 1, 100, CFGFLAG_SERVER, "(Tw32) real id <-> vanilla id players map update rate")
 
+MACRO_CONFIG_INT(EuWeapons, eu_weapons, 5, 0, 10, CFGFLAG_SERVER, "Price - All weapons")
 #endif

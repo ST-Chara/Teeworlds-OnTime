@@ -16,7 +16,7 @@
 #include "gamecontroller.h"
 #include "gameworld.h"
 #include "player.h"
-#include "OnTime/account.h"
+#include "OnTime/Account/AccCore.h"
 
 #ifdef _MSC_VER
 typedef __int32 int32_t;
@@ -59,8 +59,6 @@ class CGS : public IGS
 
 	static void ConsoleOutputCallback_Chat(const char *pStr, void *pUser);
 
-	static void ConLanguage(IConsole::IResult *pResult, void *pUserData);
-	static void ConAbout(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneParam(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneReset(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneDump(IConsole::IResult *pResult, void *pUserData);
@@ -81,6 +79,11 @@ class CGS : public IGS
 	static void ConVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
+	static void ConLanguage(IConsole::IResult *pResult, void *pUserData);
+	static void ConAbout(IConsole::IResult *pResult, void *pUserData);
+	static void ConRegister(IConsole::IResult *pResult, void *pUserData);
+	static void ConLogin(IConsole::IResult *pResult, void *pUserData);
+	
 	CGS(int Resetting);
 	void Construct(int Resetting);
 
@@ -91,6 +94,7 @@ class CGS : public IGS
 
 public:
 	int m_ZoneHandle_TeeWorlds;
+	int m_ZoneHandle_OnTime;
 
 public:
 	IServer *Server() const { return m_pServer; }
@@ -166,6 +170,7 @@ public:
 	void SendEmoticon(int ClientID, int Emoticon);
 	void SendWeaponPickup(int ClientID, int Weapon);
 	void SendBroadcast(const char *pText, int ClientID);
+	void SB(const char *pText, int ClientID);
 	void SetClientLanguage(int ClientID, const char *pLanguage);
 
 
@@ -208,7 +213,7 @@ public:
 	void Register(const char *Username, const char *Password, int ClientID); // Register account
 	void Login(const char *Username, const char *Password, int ClientID); // Login account
 	bool Apply(const char *Username, const char *Password, int ClientID, const char *Language, int AccID, 
-				int m_Level, int m_Exp, unsigned int m_Money); // Apply account
+				int m_Level, int m_Exp, unsigned int m_Lifes); // Apply account
 };
 
 class CQueryBase : public CQuery
@@ -239,8 +244,8 @@ class CQueryApply: public CQueryBase
 	void OnData();
 public:
 	int m_Level;
-	int m_Exp; 
-	unsigned int m_Money;
+	int m_Exp;
+	unsigned int m_Lifes;
 };
 
 

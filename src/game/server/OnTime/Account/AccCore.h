@@ -58,38 +58,7 @@ public:
     bool Register(const char *Username, const char *Password, const char *Language, int ClientID);
     bool Login(const char *Username, const char *Password, int ClientID);
     bool Apply(const char *Username, const char *Password, const char *Language, int AccID, 
-                int m_Level, int m_Exp, unsigned int m_Money);
-
-    /*struct
-	{
-		int m_UserID[MAX_CLIENTS];
-		char m_Username[MAX_CLIENTS][32];
-		char m_Password[MAX_CLIENTS][32];
-		int m_PlayerState[MAX_CLIENTS];
-
-		int m_Level[MAX_CLIENTS];
-		int m_Exp[MAX_CLIENTS];
-		unsigned int m_Money[MAX_CLIENTS];
-
-		int m_Dmg[MAX_CLIENTS];
-		int m_Health[MAX_CLIENTS];
-		int m_Ammoregen[MAX_CLIENTS];
-		int m_Handle[MAX_CLIENTS];
-		int m_Ammo[MAX_CLIENTS];
-
-		unsigned int m_TurretMoney[MAX_CLIENTS];
-		int m_TurretLevel[MAX_CLIENTS];
-		int m_TurretExp[MAX_CLIENTS];
-		int m_TurretDmg[MAX_CLIENTS];
-		int m_TurretSpeed[MAX_CLIENTS];
-		int m_TurretAmmo[MAX_CLIENTS];
-		int m_TurretShotgun[MAX_CLIENTS];
-		int m_TurretRange[MAX_CLIENTS];
-		
-		int m_Freeze[MAX_CLIENTS];
-		int m_Winner[MAX_CLIENTS];
-		int m_Luser[MAX_CLIENTS];
-	} m_Tmp;*/
+                int Level, int Exp, unsigned int Lifes);
 };
 
 

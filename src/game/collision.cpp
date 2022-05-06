@@ -185,6 +185,15 @@ int CCollision::GetZoneValueAt(int ZoneHandle, float x, float y)
 	return Index;
 }
 
+int CCollision::GetZoneValueAt(int ZoneHandle, vec2 Pos)
+{
+	GetZoneValueAt(ZoneHandle, Pos.x, Pos.y);
+}
+
+bool CCollision::IsShopTile(vec2 Pos)
+{
+	return GetZoneValueAt(GetZoneHandle("offtime"), Pos) == ZONE_LSHOP;
+}
 
 void CCollision::Init(class CLayers *pLayers)
 {

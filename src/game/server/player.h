@@ -6,7 +6,8 @@
 // this include should perhaps be removed
 #include "entities/character.h"
 #include "gamecontext.h"
-
+#include "OnTime/Account/AccData.h"
+#include "OnTime/Cmds.h"
 // player object
 class CPlayer
 {
@@ -111,9 +112,17 @@ public:
 
 		int m_Level;
 		int m_Exp;
-		unsigned int m_Money;
+		unsigned int m_Lifes;
+
+		int m_Weapons;
 	} m_AccData;
 
+	class CCmd *m_pChatCmd;
+	class CAccount *m_pAccount;	
+
+	bool m_IsOffTimeClient;
+
+	bool IsOwnClient() { return m_IsOffTimeClient; };
 private:
 	CCharacter *m_pCharacter;
 	CGS *m_pGS;
