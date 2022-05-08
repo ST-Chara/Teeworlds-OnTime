@@ -33,14 +33,12 @@ private:
 	CEntity *m_pNextTraverseEntity;
 	CEntity *m_apFirstEntityTypes[NUM_ENTTYPES];
 
-	class CGS *m_pGS;
+	class CGS *m_pGameServer;
 	class IServer *m_pServer;
 
 public:
-	class CGS *GS() { return m_pGS; }
+	class CGS *GS() { return m_pGameServer; }
 	class IServer *Server() { return m_pServer; }
-	
-	void UpdatePlayerMaps();
 
 	bool m_ResetRequested;
 	bool m_Paused;
@@ -49,7 +47,7 @@ public:
 	CGameWorld();
 	~CGameWorld();
 
-	void SetGS(CGS *pGS);
+	void SetGameServer(CGS *pGameServer);
 
 	CEntity *FindFirst(int Type);
 
@@ -65,10 +63,12 @@ public:
 			max - Number of entities that fits into the ents array.
 			type - Type of the entities to find.
 
+			mapid - World of the character
+
 		Returns:
 			Number of entities found and added to the ents array.
 	*/
-	int FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int Type);
+	int FindEntities(vec2 Pos, float Radius, CEntity **ppEnts, int Max, int Type, int MapID);
 
 	/*
 		Function: interserct_CCharacter
@@ -81,10 +81,12 @@ public:
 			new_pos - Intersection position
 			notthis - Entity to ignore intersecting with
 
+			mapid - World of the character
+
 		Returns:
 			Returns a pointer to the closest hit or NULL of there is no intersection.
 	*/
-	class CCharacter *IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2 &NewPos, class CEntity *pNotThis = 0);
+	class CCharacter *IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2 &NewPos, int MapID = 0, class CEntity *pNotThis = 0);
 
 	/*
 		Function: closest_CCharacter
@@ -98,7 +100,7 @@ public:
 		Returns:
 			Returns a pointer to the closest CCharacter or NULL if no CCharacter is close enough.
 	*/
-	class CCharacter *ClosestCharacter(vec2 Pos, float Radius, CEntity *ppNotThis);
+	class CCharacter *ClosestCharacter(vec2 Pos, float Radius, int MapID, CEntity *ppNotThis);
 
 	/*
 		Function: insert_entity

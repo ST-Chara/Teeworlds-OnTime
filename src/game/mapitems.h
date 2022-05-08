@@ -205,6 +205,6 @@ struct CMapItemEnvelope : public CMapItemEnvelope_v1
 {
 	enum { CURRENT_VERSION=2 };
 	int m_Synchronized;
-};
+};	
 
 #endif

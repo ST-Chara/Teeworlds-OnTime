@@ -30,22 +30,20 @@ IGameController::IGameController(class CGS *pGS)
 
 	m_UnbalancedTick = -1;
 	m_ForceBalanced = false;
-
-	m_aNumSpawnPoints[0] = 0;
-	m_aNumSpawnPoints[1] = 0;
-	m_aNumSpawnPoints[2] = 0;
 }
 
 IGameController::~IGameController()
 {
 }
 
-float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos)
+float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int MapID)
 {
 	float Score = 0.0f;
 	CCharacter *pC = static_cast<CCharacter *>(GS()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER));
 	for(; pC; pC = (CCharacter *)pC->TypeNext())
 	{
+		if(pC->GetMapID() != MapID)
+			continue;
 		// team mates are not as dangerous as enemies
 		float Scoremod = 1.0f;
 		if(pEval->m_FriendlyTeam != -1 && pC->GetPlayer()->GetTeam() == pEval->m_FriendlyTeam)
@@ -58,22 +56,26 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos)
 	return Score;
 }
 
-void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
+void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int MapID)
 {
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "Evaluate Spawn Map %d Type %d SpawnNum %d", MapID, Type, m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[Type]);
+	GS()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "debug", aBuf);
+
 	// get spawn point
-	for(int i = 0; i < m_aNumSpawnPoints[Type]; i++)
+	for(int i = 0; i < m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[Type]; i++)
 	{
 		// check if the position is occupado
 		CCharacter *aEnts[MAX_CLIENTS];
-		int Num = GS()->m_World.FindEntities(m_aaSpawnPoints[Type][i], 64, (CEntity**)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		int Num = GS()->m_World.FindEntities(m_vSpawnPoints[MapID].m_aaSpawnPoints[Type][i], 64, (CEntity**)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MapID);
 		vec2 Positions[5] = { vec2(0.0f, 0.0f), vec2(-32.0f, 0.0f), vec2(0.0f, -32.0f), vec2(32.0f, 0.0f), vec2(0.0f, 32.0f) };	// start, left, up, right, down
 		int Result = -1;
 		for(int Index = 0; Index < 5 && Result == -1; ++Index)
 		{
 			Result = Index;
 			for(int c = 0; c < Num; ++c)
-				if(GS()->Collision()->CheckPoint(m_aaSpawnPoints[Type][i]+Positions[Index]) ||
-					distance(aEnts[c]->m_Pos, m_aaSpawnPoints[Type][i]+Positions[Index]) <= aEnts[c]->m_ProximityRadius)
+				if(GS()->Collision(MapID)->CheckPoint(m_vSpawnPoints[MapID].m_aaSpawnPoints[Type][i]+Positions[Index]) ||
+					distance(aEnts[c]->GetPos(), m_vSpawnPoints[MapID].m_aaSpawnPoints[Type][i]+Positions[Index]) <= aEnts[c]->GetProximityRadius())
 				{
 					Result = -1;
 					break;
@@ -82,8 +84,8 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
 		if(Result == -1)
 			continue;	// try next spawn point
 
-		vec2 P = m_aaSpawnPoints[Type][i]+Positions[Result];
-		float S = EvaluateSpawnPos(pEval, P);
+		vec2 P = m_vSpawnPoints[MapID].m_aaSpawnPoints[Type][i] + Positions[Result] ;
+		float S = EvaluateSpawnPos(pEval, P, MapID);
 		if(!pEval->m_Got || pEval->m_Score > S)
 		{
 			pEval->m_Got = true;
@@ -93,7 +95,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
 	}
 }
 
-bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
+bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int MapID)
 {
 	CSpawnEval Eval;
 
@@ -106,19 +108,19 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
 		Eval.m_FriendlyTeam = Team;
 
 		// first try own team spawn, then normal spawn and then enemy
-		EvaluateSpawnType(&Eval, 1+(Team&1));
+		EvaluateSpawnType(&Eval, 1+(Team&1), MapID);
 		if(!Eval.m_Got)
 		{
-			EvaluateSpawnType(&Eval, 0);
+			EvaluateSpawnType(&Eval, 0, MapID);
 			if(!Eval.m_Got)
-				EvaluateSpawnType(&Eval, 1+((Team+1)&1));
+				EvaluateSpawnType(&Eval, 1+((Team+1)&1), MapID);
 		}
 	}
 	else
 	{
-		EvaluateSpawnType(&Eval, 0);
-		EvaluateSpawnType(&Eval, 1);
-		EvaluateSpawnType(&Eval, 2);
+		EvaluateSpawnType(&Eval, 0, MapID);
+		EvaluateSpawnType(&Eval, 1, MapID);
+		EvaluateSpawnType(&Eval, 2, MapID);
 	}
 
 	*pOutPos = Eval.m_Pos;
@@ -126,27 +128,50 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
 }
 
 
-bool IGameController::OnEntity(const char* pName, vec2 Pivot, vec2 P0, vec2 P1, vec2 P2, vec2 P3, int PosEnv)
+bool IGameController::OnEntity(const char* pName, vec2 Pivot, vec2 P0, vec2 P1, vec2 P2, vec2 P3, int PosEnv, int MapID)
 {
 	vec2 Pos = (P0 + P1 + P2 + P3)/4.0f;
 	int Type = -1;
+
 	int SubType = 0;
 
 	if(str_comp(pName, "spawn") == 0)
-		m_aaSpawnPoints[0][m_aNumSpawnPoints[0]++] = Pos;
+	{
+		m_vSpawnPoints[MapID].m_aaSpawnPoints[0][m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[0]++] = Pos;
+	}
 	else if(str_comp(pName, "spawnRed") == 0)
-		m_aaSpawnPoints[1][m_aNumSpawnPoints[1]++] = Pos;
+	{
+		m_vSpawnPoints[MapID].m_aaSpawnPoints[1][m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[1]++] = Pos;
+	}
 	else if(str_comp(pName, "spawnBlue") == 0)
-		m_aaSpawnPoints[2][m_aNumSpawnPoints[2]++] = Pos;
+	{
+		m_vSpawnPoints[MapID].m_aaSpawnPoints[2][m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[2]++] = Pos;
+	}
+	else if(str_comp(pName, "armor") == 0)
+		Type = POWERUP_ARMOR;
+	else if(str_comp(pName, "health") == 0)
+		Type = POWERUP_HEALTH;
 
 	if(Type != -1)
 	{
-		CPickup *pPickup = new CPickup(&GS()->m_World, Type, SubType, Pivot, Pos - Pivot, PosEnv);
+		CPickup *pPickup = new CPickup(&GS()->m_World, Type, SubType, MapID);
 		pPickup->m_Pos = Pos;
 		return true;
 	}
 
 	return false;
+}
+
+void IGameController::SetSpawnNum(int MapNum)
+{
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "Setting enviroment for MapID %d", MapNum-1);
+	GS()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+	m_vSpawnPoints.resize(MapNum);
+	m_vNumSpawnPoints.resize(MapNum);
+	for(int i = 0; i < NUM_SPAWN_TYPES; ++i)
+		m_vNumSpawnPoints[MapNum-1].m_aNumSpawnPoints[i] = 0;
 }
 
 void IGameController::EndRound()
@@ -231,7 +256,7 @@ void IGameController::CycleMap()
 
 	// handle maprotation
 	const char *pMapRotation = g_Config.m_SvMaprotation;
-	const char *pCurrentMap = g_Config.m_SvMap;
+	const char *pCurrentMap = " ";
 
 	int CurrentMapLen = str_length(pCurrentMap);
 	const char *pNextMap = pMapRotation;

@@ -4,8 +4,8 @@
 #include <game/server/gamecontext.h>
 #include "laser.h"
 
-CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner)
-: CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER)
+CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int MapID)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER, MapID)
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
@@ -22,7 +22,7 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 {
 	vec2 At;
 	CCharacter *pOwnerChar = GS()->GetPlayerChar(m_Owner);
-	CCharacter *pHit = GS()->m_World.IntersectCharacter(m_Pos, To, 0.f, At, pOwnerChar);
+	CCharacter *pHit = GS()->m_World.IntersectCharacter(m_Pos, To, 0.f, At, GetMapID(), pOwnerChar);
 	if(!pHit)
 		return false;
 
@@ -45,7 +45,7 @@ void CLaser::DoBounce()
 
 	vec2 To = m_Pos + m_Dir * m_Energy;
 
-	if(GS()->Collision()->IntersectLine(m_Pos, To, 0x0, &To))
+	if(GS()->Collision(GetMapID())->IntersectLine(m_Pos, To, 0x0, &To))
 	{
 		if(!HitCharacter(m_Pos, To))
 		{
@@ -56,7 +56,7 @@ void CLaser::DoBounce()
 			vec2 TempPos = m_Pos;
 			vec2 TempDir = m_Dir * 4.0f;
 
-			GS()->Collision()->MovePoint(&TempPos, &TempDir, 1.0f, 0);
+			GS()->Collision(GetMapID())->MovePoint(&TempPos, &TempDir, 1.0f, 0);
 			m_Pos = TempPos;
 			m_Dir = normalize(TempDir);
 
@@ -66,7 +66,7 @@ void CLaser::DoBounce()
 			if(m_Bounces > GS()->Tuning()->m_LaserBounceNum)
 				m_Energy = -1;
 
-			GS()->CreateSound(m_Pos, SOUND_RIFLE_BOUNCE);
+			GS()->CreateSound(m_Pos, SOUND_RIFLE_BOUNCE, -1, GetMapID());
 		}
 	}
 	else
@@ -98,6 +98,9 @@ void CLaser::TickPaused()
 
 void CLaser::Snap(int SnappingClient)
 {
+	if(GS()->Server()->ClientMapID(SnappingClient) != GetMapID())
+		return;
+
 	if(NetworkClipped(SnappingClient))
 		return;
 

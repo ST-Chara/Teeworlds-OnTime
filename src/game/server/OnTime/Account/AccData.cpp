@@ -20,22 +20,22 @@ void CAccount::Login(char *Username, char *Password, int ClientID)
 {
 	char aBuf[125];
 	if (m_pPlayer->m_AccData.m_UserID)
-		return GameServer()->SendChatTarget(m_pPlayer->GetCID(), _("Already logged in"));
+		return GS()->SendChatTarget(m_pPlayer->GetCID(), _("Already logged in"));
 
 	char aHash[64]; //Result
 	mem_zero(aHash, sizeof(aHash));
 	Crypt(Password, (const unsigned char*) "d9", 1, 14, aHash);
 
-	GameServer()->Login(Username, aHash, m_pPlayer->GetCID());
+	GS()->Login(Username, aHash, m_pPlayer->GetCID());
 }
 
 void CAccount::Register(char *Username, char *Password, int ClientID)
 {
 	char aBuf[125];
 	if(m_pPlayer->m_AccData.m_UserID)
-		return GameServer()->SendChatTarget(m_pPlayer->GetCID(), _("Already logged in"));
+		return GS()->SendChatTarget(m_pPlayer->GetCID(), _("Already logged in"));
 
-	GameServer()->Register(Username, Password, m_pPlayer->GetCID());
+	GS()->Register(Username, Password, m_pPlayer->GetCID());
 }
 
 bool CAccount::Exists(const char *Username)
@@ -44,7 +44,7 @@ bool CAccount::Exists(const char *Username)
 
 bool CAccount::Apply()
 {
-	return GameServer()->Apply(
+	return GS()->Apply(
         m_pPlayer->m_AccData.m_Username, 
         m_pPlayer->m_AccData.m_Password, 
         m_pPlayer->GetCID(), 
@@ -74,5 +74,5 @@ void CAccount::NewPassword(char *NewPassword)
 	Apply();
 	
 	dbg_msg("account", "Password changed - ('%s')", m_pPlayer->m_AccData.m_Username);
-	GameServer()->SendChatTarget(m_pPlayer->GetCID(), _("Password successfully changed!"));
+	GS()->SendChatTarget(m_pPlayer->GetCID(), _("Password successfully changed!"));
 }

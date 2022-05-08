@@ -342,13 +342,13 @@ void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
-	if(!GS()->m_pController->CanSpawn(m_Team, &SpawnPos))
+	if(!GS()->m_pController->CanSpawn(m_Team, &SpawnPos, GS()->Server()->ClientMapID(m_ClientID)))
 		return;
 
 	m_Spawning = false;
-	m_pCharacter = new(m_ClientID) CCharacter(&GS()->m_World);
+	m_pCharacter = new(m_ClientID) CCharacter(&GS()->m_World, GS()->Server()->ClientMapID(m_ClientID));
 	m_pCharacter->Spawn(this, SpawnPos);
-	GS()->CreatePlayerSpawn(SpawnPos);
+	GS()->CreatePlayerSpawn(SpawnPos, GS()->Server()->ClientMapID(m_ClientID));
 }
 
 const char* CPlayer::GetLanguage()

@@ -58,7 +58,7 @@ public:
     bool Register(const char *Username, const char *Password, const char *Language, int ClientID);
     bool Login(const char *Username, const char *Password, int ClientID);
     bool Apply(const char *Username, const char *Password, const char *Language, int AccID, 
-                int Level, int Exp, unsigned int Lifes);
+                int Level, int Exp, unsigned int Lifes, int Weapons);
 };
 
 
