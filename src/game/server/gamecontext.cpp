@@ -28,7 +28,7 @@ void CQueryRegister::OnData()
 			m_pGameServer->SendChatTarget(m_ClientID, _("Password: {str:Password}"), "Password", Password);
 			m_pGameServer->SendChatTarget(m_ClientID, _("Now use the /login {str:u} {str:p}"), "u", Username, "p", Password);
 			m_pGameServer->SendChatTarget(m_ClientID, _("~~~~~~~~ ! Registered ! ~~~~~~~~"));
-			m_pGameServer->Login(Username, Password, m_ClientID);
+			m_pGameServer->Login(Username, Password, m_ClientID, false);
 		}
 	}
 }
@@ -37,24 +37,20 @@ void CQueryLogin::OnData()
 {
 	if(Next())
 	{
-//		if(m_pDatabase->Login(Username, Password, m_ClientID))
-//		{
-			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_UserID = GetInt(GetID("ID"));
-			str_format(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Username, sizeof(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Username), GetText(GetID("Username")));
-			str_format(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Password, sizeof(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Password), GetText(GetID("Password")));
-			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Exp = GetInt(GetID("Exp"));
-			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Level = GetInt(GetID("Level"));
-			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Lifes = GetInt(GetID("Lifes"));
-			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Weapons = GetInt(GetID("Weapons"));
-			m_pGameServer->Server()->SetClientLanguage(m_ClientID, GetText(GetID("Language")));
-			m_pGameServer->m_apPlayers[m_ClientID]->SetTeam(TEAM_RED);
+		m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_UserID = GetInt(GetID("ID"));
+		str_format(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Username, sizeof(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Username), GetText(GetID("Username")));
+		str_format(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Password, sizeof(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Password), GetText(GetID("Password")));
+		m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Exp = GetInt(GetID("Exp"));
+		m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Level = GetInt(GetID("Level"));
+		m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Lifes = GetInt(GetID("Lifes"));
+		m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Weapons = GetInt(GetID("Weapons"));
+		m_pGameServer->Server()->SetClientLanguage(m_ClientID, GetText(GetID("Language")));
+		m_pGameServer->m_apPlayers[m_ClientID]->SetTeam(TEAM_RED);
+		if(!m_ChangeMap)
 			m_pGameServer->SendChatTarget(m_ClientID, _("Successfully logged in! Have fun while playing!"));
-//		}
 	}
-	else
-	{
-		m_pGameServer->SendChatTarget(m_ClientID, _("This account does not exist. Use /help"));
-	}
+	else if(!m_ChangeMap)
+			m_pGameServer->SendChatTarget(m_ClientID, _("This account does not exist. Use /help"));
 }
 
 void CQueryApply::OnData()
@@ -609,13 +605,14 @@ void CGS::OnClientPredictedInput(int ClientID, void *pInput)
 		m_apPlayers[ClientID]->OnPredictedInput((CNetObj_PlayerInput *)pInput);
 }
 
-void CGS::OnClientEnter(int ClientID)
+void CGS::OnClientEnter(int ClientID, bool ChangeMap)
 {
 	//world.insert_entity(&players[client_id]);
 	m_apPlayers[ClientID]->Respawn();
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s", Server()->ClientName(ClientID), m_pController->GetTeamName(m_apPlayers[ClientID]->GetTeam()));
-	SendChat(-1, CGS::CHAT_ALL, aBuf);
+	if(!ChangeMap)
+		SendChat(-1, CGS::CHAT_ALL, aBuf);
 
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), m_apPlayers[ClientID]->GetTeam());
 	Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
@@ -654,6 +651,7 @@ void CGS::OnClientConnected(int ClientID, int MapChange)
 
 void CGS::OnClientDrop(int ClientID, const char *pReason)
 {
+	m_apPlayers[ClientID]->m_AccData.m_UserID = m_apPlayers[ClientID]->m_AccData.m_Level = m_apPlayers[ClientID]->m_AccData.m_Exp = 0;
 	AbortVoteKickOnDisconnect(ClientID);
 	m_apPlayers[ClientID]->OnDisconnect(pReason);
 	delete m_apPlayers[ClientID];
@@ -1047,6 +1045,9 @@ void CGS::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 	else if(MsgID == NETMSGTYPE_CL_ISOFFTIMEMOD)
 	{
 		pPlayer->m_IsOffTimeClient = true;
+
+		CNetMsg_Cl_IsOffTimeMod Msg;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID);
 	}
 	else
 	{
@@ -1776,6 +1777,7 @@ void CGS::OnInitMap(int MapID)
 	//Get zones
 	m_ZoneHandle_TeeWorlds = m_vCollision[MapID].GetZoneHandle("teeworlds");
 	m_ZoneHandle_OnTime = m_vCollision[MapID].GetZoneHandle("offtime");
+	m_ZoneHandle_ChangeWorld = m_vCollision[MapID].GetZoneHandle("changeworld");
 
 	m_pController->SetSpawnNum((MapID+1));
 
@@ -1783,15 +1785,6 @@ void CGS::OnInitMap(int MapID)
 	CMapItemLayerTilemap *pTileMap = m_vLayers[MapID].GameLayer();
 	//CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
 	CTile *pTiles = (CTile *)pMap->GetData(pTileMap->m_Data);
-
-
-
-
-	/*
-	num_spawn_points[0] = 0;
-	num_spawn_points[1] = 0;
-	num_spawn_points[2] = 0;
-	*/
 
 	for(int y = 0; y < pTileMap->m_Height; y++)
 	{
@@ -1836,7 +1829,7 @@ void CGS::OnInitMap(int MapID)
 
 				IntsToStr(pQLayer->m_aName, sizeof(aLayerName)/sizeof(int), aLayerName);
 
-				const CQuad *pQuads = (const CQuad *) Kernel()->RequestInterface<IMap>()->GetDataSwapped(pQLayer->m_Data);
+				const CQuad *pQuads = (const CQuad *) pMap->GetData(pQLayer->m_Data);
 
 				for(int q = 0; q < pQLayer->m_NumQuads; q++)
 				{
@@ -1923,13 +1916,15 @@ void CGS::Register(const char *Username, const char *Password, int ClientID)
 	sqlite3_free(pQueryBuf);
 }
 
-void CGS::Login(const char *Username, const char *Password, int ClientID)
+void CGS::Login(const char *Username, const char *Password, int ClientID, bool ChangeMap)
 {
 	char *pQueryBuf = sqlite3_mprintf("SELECT * FROM Accounts WHERE Username='%q'", Username);
+	dbg_msg("sssssssssssssssssssssssss", "s: %s", pQueryBuf);
 	CQueryLogin *pQuery = new CQueryLogin();
 	pQuery->Username = Username;
 	pQuery->Password = Password;
 	pQuery->m_ClientID = ClientID;
+	pQuery->m_ChangeMap = ChangeMap;
 	pQuery->m_pGameServer = this;
 	pQuery->Query(m_pDatabase, pQueryBuf);
 	sqlite3_free(pQueryBuf);
@@ -1960,8 +1955,21 @@ void CGS::KillCharacter(int ClientID)
 	}
 }
 
-void CGS::PrepareClientChangeMap(int ClientID)
+void CGS::PrepareClientChangeMap(int ClientID, bool ChangeMap)
 {
+	char Username[256];
+	char Password[256];
+	str_format(Username, sizeof(Username), m_apPlayers[ClientID]->m_AccData.m_Username);
+	str_format(Password, sizeof(Password), m_apPlayers[ClientID]->m_AccData.m_Password);
+	Apply(Username, Password, ClientID,
+		m_apPlayers[ClientID]->GetLanguage(), 
+        m_apPlayers[ClientID]->m_AccData.m_UserID, 
+        m_apPlayers[ClientID]->m_AccData.m_Level, 
+        m_apPlayers[ClientID]->m_AccData.m_Exp, 
+        m_apPlayers[ClientID]->m_AccData.m_Lifes);
+
+	
+	
 	if (m_apPlayers[ClientID])
 	{
 		m_apPlayers[ClientID]->KillCharacter(WEAPON_WORLD);
@@ -1969,4 +1977,5 @@ void CGS::PrepareClientChangeMap(int ClientID)
 		m_apPlayers[ClientID] = nullptr;
 	}
 	m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, TEAM_RED);
+	Login(Username, Password, ClientID, true);
 }

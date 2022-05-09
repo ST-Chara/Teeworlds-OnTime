@@ -26,7 +26,7 @@ void CAccount::Login(char *Username, char *Password, int ClientID)
 	mem_zero(aHash, sizeof(aHash));
 	Crypt(Password, (const unsigned char*) "d9", 1, 14, aHash);
 
-	GS()->Login(Username, aHash, m_pPlayer->GetCID());
+	GS()->Login(Username, aHash, m_pPlayer->GetCID(), false);
 }
 
 void CAccount::Register(char *Username, char *Password, int ClientID)

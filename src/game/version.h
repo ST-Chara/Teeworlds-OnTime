@@ -7,12 +7,12 @@
 #include "generated/nethash.cpp"
 #define GAME_VERSION "0.6.4"
 #define GAME_NETVERSION "0.6 626fce9a778df4d4" //the std game version
-static const char GAME_RELEASE_VERSION[8] = {'0', '.', '6', '.', '4', 0};
+static const char GAME_RELEASE_VERSION[8] = "0.6.4";
 
-#define MOD_NAME "OffTime"
-#define MOD_VERSION "0.1"
+#define MOD_NAME "Out of Time"
+#define MOD_VERSION "0.2"
 #define MOD_AUTHORS "FlowerFell-Sans"
-#define MOD_CREDITS "FlowerFell-Sans"
+#define MOD_CREDITS "FlowerFell-Sans, ErrorDreemurr"
 #define MOD_THANKS "GutZuFusss, Kurosio, StarOnTheSky, Animal-pdf, Necropotame"
 #define MOD_SOURCES "https://github.com/teeworldsFun/Teeworlds-OnTime"
 #endif

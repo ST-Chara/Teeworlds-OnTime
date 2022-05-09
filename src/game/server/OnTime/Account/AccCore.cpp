@@ -188,6 +188,8 @@ bool CSql::Login(const char *Username, const char *Password, int ClientID)
         "Password='%s';", 
         Username, Password);
 
+
+    dbg_msg("SQLite3 Debug: LOGIN", "SQLite3: %s", pQuery);
     char *pErrorMsg;
     lock_wait(m_Lock);
     sqlite3_exec(m_pDB, pQuery, NULL, NULL, &pErrorMsg);

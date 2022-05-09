@@ -98,6 +98,7 @@ class CGS : public IGS
 public:
 	int m_ZoneHandle_TeeWorlds;
 	int m_ZoneHandle_OnTime;
+	int m_ZoneHandle_ChangeWorld;
 
 public:
 	IServer *Server() const { return m_pServer; }
@@ -199,13 +200,13 @@ public:
 	virtual void OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID);
 
 	virtual void OnClientConnected(int ClientID, int MapChange);
-	virtual void OnClientEnter(int ClientID);
+	virtual void OnClientEnter(int ClientID, bool ChangeMap);
 	virtual void KillCharacter(int ClientID);
 	virtual void OnClientDrop(int ClientID, const char *pReason);
 	virtual void OnClientDirectInput(int ClientID, void *pInput);
 	virtual void OnClientPredictedInput(int ClientID, void *pInput);
 
-	void PrepareClientChangeMap(int ClientID) override;
+	void PrepareClientChangeMap(int ClientID, bool ChangeMap) override;
 
 	virtual bool IsClientReady(int ClientID);
 	virtual bool IsClientPlayer(int ClientID);
@@ -218,7 +219,7 @@ public:
 // - SQL
 	CSql *m_pDatabase;
 	void Register(const char *Username, const char *Password, int ClientID); // Register account
-	void Login(const char *Username, const char *Password, int ClientID); // Login account
+	void Login(const char *Username, const char *Password, int ClientID, bool ChangeMap); // Login account
 	bool Apply(const char *Username, const char *Password, int ClientID, const char *Language, int AccID, 
 				int m_Level, int m_Exp, unsigned int m_Lifes); // Apply account
 };
@@ -230,6 +231,7 @@ public:
 	const char *Username;
 	const char *Password;
 	const char *Language;
+	bool m_ChangeMap;
 	CGS *m_pGameServer;
 };
 

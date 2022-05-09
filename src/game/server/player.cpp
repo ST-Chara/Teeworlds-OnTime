@@ -72,7 +72,7 @@ void CPlayer::Tick()
 	if(!Server()->ClientIngame(m_ClientID))
 		return;
 
-	Server()->SetClientScore(m_ClientID, m_Score);
+	Server()->SetClientScore(m_ClientID, m_AccData.m_Level);
 	Server()->SetClientLanguage(m_ClientID, m_aLanguage);
 
 	// do latency stuff
@@ -219,7 +219,7 @@ void CPlayer::OnDisconnect(const char *pReason)
 {
 	KillCharacter();
 
-	if(Server()->ClientIngame(m_ClientID))
+	if(Server()->ClientIngame(m_ClientID) && !m_AccData.m_UserID)
 	{
 		char aBuf[512];
 		if(pReason && *pReason)

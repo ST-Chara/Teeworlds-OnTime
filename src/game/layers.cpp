@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "layers.h"
 #include "gamecore.h"
+#include <engine/map.h>
 
 CLayers::CLayers()
 {

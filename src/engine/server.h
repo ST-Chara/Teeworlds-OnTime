@@ -203,12 +203,12 @@ public:
 
 	virtual void OnClientConnected(int ClientID, int MapChange) = 0;
 	virtual void KillCharacter(int ClientID) = 0;
-	virtual void OnClientEnter(int ClientID) = 0;
+	virtual void OnClientEnter(int ClientID, bool ChangeMap) = 0;
 	virtual void OnClientDrop(int ClientID, const char *pReason) = 0;
 	virtual void OnClientDirectInput(int ClientID, void *pInput) = 0;
 	virtual void OnClientPredictedInput(int ClientID, void *pInput) = 0;
 
-	virtual void PrepareClientChangeMap(int ClientID) = 0;
+	virtual void PrepareClientChangeMap(int ClientID, bool ChangeMap) = 0;
 
 	virtual bool IsClientReady(int ClientID) = 0;
 	virtual bool IsClientPlayer(int ClientID) = 0;
