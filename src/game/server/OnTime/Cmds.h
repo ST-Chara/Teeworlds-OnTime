@@ -11,7 +11,7 @@ public:
 private:
 	CPlayer *m_pPlayer;
 	CGS *m_pGameServer;
-	CGS *GameServer() const { return m_pGameServer; }
+	CGS *GS() const { return m_pGameServer; }
 
 	void LastChat();
 };

@@ -188,6 +188,8 @@ bool CSql::Login(const char *Username, const char *Password, int ClientID)
         "Password='%s';", 
         Username, Password);
 
+
+    dbg_msg("SQLite3 Debug: LOGIN", "SQLite3: %s", pQuery);
     char *pErrorMsg;
     lock_wait(m_Lock);
     sqlite3_exec(m_pDB, pQuery, NULL, NULL, &pErrorMsg);
@@ -197,11 +199,11 @@ bool CSql::Login(const char *Username, const char *Password, int ClientID)
 }
 
 bool CSql::Apply(const char *Username, const char *Password, const char *Language, 
-                int AccID, int m_Level, int m_Exp, unsigned int m_Lifes)
+                int AccID, int m_Level, int m_Exp, unsigned int m_Lifes, int Weapons)
 {
     char pQuery[300];
     
-    str_format(pQuery, sizeof(pQuery), (char *)"UPDATE Accounts SET Exp=%d,Level=%d,Lifes=%d, WHERE ID=%d;", m_Exp, m_Level, m_Lifes, AccID);
+    str_format(pQuery, sizeof(pQuery), (char *)"UPDATE Accounts SET Exp=%d,Level=%d,Lifes=%d,Weapons=%d, WHERE ID=%d;", m_Exp, m_Level, m_Lifes, Weapons, AccID);
 
     int nRet=0;
     char *pErrorMsg;

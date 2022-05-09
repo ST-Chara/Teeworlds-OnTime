@@ -12,6 +12,8 @@
 #include <game/layers.h>
 #include <game/voting.h>
 
+#include <vector>
+
 #include "eventhandler.h"
 #include "gamecontroller.h"
 #include "gameworld.h"
@@ -52,8 +54,8 @@ class CGS : public IGS
 {
 	IServer *m_pServer;
 	class IConsole *m_pConsole;
-	CLayers m_Layers;
-	CCollision m_Collision;
+	std::vector<CLayers> m_vLayers;
+	std::vector<CCollision> m_vCollision;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
 
@@ -83,6 +85,7 @@ class CGS : public IGS
 	static void ConAbout(IConsole::IResult *pResult, void *pUserData);
 	static void ConRegister(IConsole::IResult *pResult, void *pUserData);
 	static void ConLogin(IConsole::IResult *pResult, void *pUserData);
+	static void ConShop(IConsole::IResult *pResult, void *pUserData);
 	
 	CGS(int Resetting);
 	void Construct(int Resetting);
@@ -95,13 +98,14 @@ class CGS : public IGS
 public:
 	int m_ZoneHandle_TeeWorlds;
 	int m_ZoneHandle_OnTime;
+	int m_ZoneHandle_ChangeWorld;
 
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
-	CCollision *Collision() { return &m_Collision; }
+	CCollision *Collision(int MapID) { return &(m_vCollision[MapID]); }
 	CTuningParams *Tuning() { return &m_Tuning; }
-	virtual class CLayers *Layers() { return &m_Layers; }
+	virtual class CLayers *Layers(int MapID) { return &m_vLayers[MapID]; }
 	
 
 	CGS();
@@ -147,12 +151,12 @@ public:
 	CVoteOptionServer *m_pVoteOptionLast;
 
 	// helper functions
-	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int64_t Mask=-1LL);
-	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int64_t Mask=-1LL);
-	void CreateHammerHit(vec2 Pos, int64_t Mask=-1LL);
-	void CreatePlayerSpawn(vec2 Pos, int64_t Mask=-1LL);
-	void CreateDeath(vec2 Pos, int Who, int64_t Mask=-1LL);
-	void CreateSound(vec2 Pos, int Sound, int64_t Mask=-1LL);
+	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int MapID);
+	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int MapID);
+	void CreateHammerHit(vec2 Pos, int MapID);
+	void CreatePlayerSpawn(vec2 Pos, int MapID);
+	void CreateDeath(vec2 Pos, int Who, int MapID);
+	void CreateSound(vec2 Pos, int Sound, int Mask, int MapID);
 	void CreateSoundGlobal(int Sound, int Target=-1);
 
 
@@ -184,21 +188,25 @@ public:
 
 	// engine events
 	virtual void OnInit();
+	virtual void OnInitMap(int MapID);
 	virtual void OnConsoleInit();
 	virtual void OnShutdown();
 
-	virtual void OnTick();
+	virtual void OnTick(int MapID);
 	virtual void OnPreSnap();
 	virtual void OnSnap(int ClientID);
 	virtual void OnPostSnap();
 
 	virtual void OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID);
 
-	virtual void OnClientConnected(int ClientID);
-	virtual void OnClientEnter(int ClientID);
+	virtual void OnClientConnected(int ClientID, int MapChange);
+	virtual void OnClientEnter(int ClientID, bool ChangeMap);
+	virtual void KillCharacter(int ClientID);
 	virtual void OnClientDrop(int ClientID, const char *pReason);
 	virtual void OnClientDirectInput(int ClientID, void *pInput);
 	virtual void OnClientPredictedInput(int ClientID, void *pInput);
+
+	void PrepareClientChangeMap(int ClientID, bool ChangeMap) override;
 
 	virtual bool IsClientReady(int ClientID);
 	virtual bool IsClientPlayer(int ClientID);
@@ -208,10 +216,10 @@ public:
 	virtual const char *GameType();
 	virtual const char *Version();
 	virtual const char *NetVersion();
-	// - SQL
+// - SQL
 	CSql *m_pDatabase;
 	void Register(const char *Username, const char *Password, int ClientID); // Register account
-	void Login(const char *Username, const char *Password, int ClientID); // Login account
+	void Login(const char *Username, const char *Password, int ClientID, bool ChangeMap); // Login account
 	bool Apply(const char *Username, const char *Password, int ClientID, const char *Language, int AccID, 
 				int m_Level, int m_Exp, unsigned int m_Lifes); // Apply account
 };
@@ -223,6 +231,7 @@ public:
 	const char *Username;
 	const char *Password;
 	const char *Language;
+	bool m_ChangeMap;
 	CGS *m_pGameServer;
 };
 
@@ -246,12 +255,11 @@ public:
 	int m_Level;
 	int m_Exp;
 	unsigned int m_Lifes;
+	int m_Weapons;
 };
 
-
-inline int64_t CmaskAll() { return -1LL; }
-inline int64_t CmaskOne(int ClientID) { return 1LL<<ClientID; }
-inline int64_t CmaskAllExceptOne(int ClientID) { return CmaskAll()^CmaskOne(ClientID); }
-inline bool CmaskIsSet(int64_t Mask, int ClientID) { return (Mask&CmaskOne(ClientID)) != 0; }
-
+inline int CmaskAll() { return -1; }
+inline int CmaskOne(int ClientID) { return 1<<ClientID; }
+inline int CmaskAllExceptOne(int ClientID) { return 0x7fffffff^CmaskOne(ClientID); }
+inline bool CmaskIsSet(int Mask, int ClientID) { return (Mask&CmaskOne(ClientID)) != 0; }
 #endif

@@ -4,6 +4,7 @@
 #define GAME_LAYERS_H
 
 #include <engine/map.h>
+#include <engine/shared/map.h>
 #include <game/mapitems.h>
 
 class CLayers
@@ -20,7 +21,7 @@ class CLayers
 
 public:
 	CLayers();
-	void Init(class IKernel *pKernel);
+	void Init(class IKernel *pKernel, class IMap *pMap=0);
 	int NumGroups() const { return m_GroupsNum; };
 	class IMap *Map() const { return m_pMap; };
 	CMapItemGroup *GameGroup() const { return m_pGameGroup; };

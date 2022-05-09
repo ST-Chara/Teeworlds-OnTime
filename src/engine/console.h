@@ -96,6 +96,8 @@ public:
 	virtual void Print(int Level, const char *pFrom, const char *pStr) = 0;
 
 	virtual void SetAccessLevel(int AccessLevel) = 0;
+
+	virtual bool IsCommand(const char *pStr, int FlagMask) = 0;
 };
 
 extern IConsole *CreateConsole(int FlagMask);

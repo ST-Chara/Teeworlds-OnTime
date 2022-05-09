@@ -4,8 +4,8 @@
 #include <game/server/gamecontext.h>
 #include "pickup.h"
 
-CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType, vec2 Pivot, vec2 RelPos, int PosEnv)
-: CAnimatedEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, Pivot, RelPos, PosEnv)
+CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType, int MapID)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, MapID)
 {
 	m_Type = Type;
 	m_Subtype = SubType;
@@ -26,8 +26,6 @@ void CPickup::Reset()
 
 void CPickup::Tick()
 {
-	CAnimatedEntity::Tick();
-
 	// wait for respawn
 	if(m_SpawnTick > 0)
 	{
@@ -37,13 +35,13 @@ void CPickup::Tick()
 			m_SpawnTick = -1;
 
 			if(m_Type == POWERUP_WEAPON)
-				GS()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN);
+				GS()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN, -1, GetMapID());
 		}
 		else
 			return;
 	}
 	// Check if a player intersected us
-	CCharacter *pChr = GS()->m_World.ClosestCharacter(m_Pos, 20.0f, 0);
+	CCharacter *pChr = GS()->m_World.ClosestCharacter(m_Pos, 20.0f, GetMapID(), 0);
 	if(pChr && pChr->IsAlive())
 	{
 		// player picked us up, is someone was hooking us, let them go
@@ -53,7 +51,7 @@ void CPickup::Tick()
 			case POWERUP_HEALTH:
 				if(pChr->IncreaseHealth(1))
 				{
-					GS()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH);
+					GS()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH, -1, GetMapID());
 					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 				}
 				break;
@@ -61,7 +59,7 @@ void CPickup::Tick()
 			case POWERUP_ARMOR:
 				if(pChr->IncreaseArmor(1))
 				{
-					GS()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR);
+					GS()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR, -1, GetMapID());
 					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 				}
 				break;
@@ -74,11 +72,11 @@ void CPickup::Tick()
 						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
 
 						if(m_Subtype == WEAPON_GRENADE)
-							GS()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE);
+							GS()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE, -1, GetMapID());
 						else if(m_Subtype == WEAPON_SHOTGUN)
-							GS()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN);
+							GS()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, -1, GetMapID());
 						else if(m_Subtype == WEAPON_RIFLE)
-							GS()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN);
+							GS()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, -1, GetMapID());
 
 						if(pChr->GetPlayer())
 							GS()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
@@ -111,9 +109,10 @@ void CPickup::Tick()
 		if(RespawnTime >= 0)
 		{
 			char aBuf[256];
-			str_format(aBuf, sizeof(aBuf), "pickup player='%d:%s' item=%d/%d",
-				pChr->GetPlayer()->GetCID(), Server()->ClientName(pChr->GetPlayer()->GetCID()), m_Type, m_Subtype);
-			GS()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+			str_format(aBuf, sizeof(aBuf), "pickup player='%d:%s' item=%d map='%d",
+			pChr->GetPlayer()->GetCID(), Server()->ClientName(pChr->GetPlayer()->GetCID()), m_Type, GetMapID());
+			GS()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game/multimap", aBuf);
 			m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime;
 		}
 	}
@@ -127,6 +126,9 @@ void CPickup::TickPaused()
 
 void CPickup::Snap(int SnappingClient)
 {
+	if(GS()->Server()->ClientMapID(SnappingClient) != GetMapID())
+		return;
+
 	if(m_SpawnTick != -1 || NetworkClipped(SnappingClient))
 		return;
 

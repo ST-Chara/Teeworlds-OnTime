@@ -46,6 +46,12 @@ enum
 	ZONE_TIME=0,
 	ZONE_LSHOP,
 
+	ZONE_CHANGE_WORLD=0,
+	ZONE_WORLD_C1,
+	ZONE_WORLD_C2,
+	ZONE_WORLD_C3,
+	ZONE_WORLD_C4,
+
 	TILEFLAG_VFLIP=1,
 	TILEFLAG_HFLIP=2,
 	TILEFLAG_OPAQUE=4,
@@ -205,6 +211,6 @@ struct CMapItemEnvelope : public CMapItemEnvelope_v1
 {
 	enum { CURRENT_VERSION=2 };
 	int m_Synchronized;
-};
+};	
 
 #endif

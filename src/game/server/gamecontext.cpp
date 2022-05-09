@@ -28,7 +28,7 @@ void CQueryRegister::OnData()
 			m_pGameServer->SendChatTarget(m_ClientID, _("Password: {str:Password}"), "Password", Password);
 			m_pGameServer->SendChatTarget(m_ClientID, _("Now use the /login {str:u} {str:p}"), "u", Username, "p", Password);
 			m_pGameServer->SendChatTarget(m_ClientID, _("~~~~~~~~ ! Registered ! ~~~~~~~~"));
-			m_pGameServer->Login(Username, Password, m_ClientID);
+			m_pGameServer->Login(Username, Password, m_ClientID, false);
 		}
 	}
 }
@@ -37,23 +37,20 @@ void CQueryLogin::OnData()
 {
 	if(Next())
 	{
-//		if(m_pDatabase->Login(Username, Password, m_ClientID))
-//		{
-			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_UserID = GetInt(GetID("ID"));
-			str_format(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Username, sizeof(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Username), GetText(GetID("Username")));
-			str_format(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Password, sizeof(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Password), GetText(GetID("Password")));
-			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Exp = GetInt(GetID("Exp"));
-			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Level = GetInt(GetID("Level"));
-			m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Lifes = GetInt(GetID("Lifes"));
-			m_pGameServer->Server()->SetClientLanguage(m_ClientID, GetText(GetID("Language")));
-			m_pGameServer->m_apPlayers[m_ClientID]->SetTeam(TEAM_RED);
+		m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_UserID = GetInt(GetID("ID"));
+		str_format(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Username, sizeof(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Username), GetText(GetID("Username")));
+		str_format(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Password, sizeof(m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Password), GetText(GetID("Password")));
+		m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Exp = GetInt(GetID("Exp"));
+		m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Level = GetInt(GetID("Level"));
+		m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Lifes = GetInt(GetID("Lifes"));
+		m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_Weapons = GetInt(GetID("Weapons"));
+		m_pGameServer->Server()->SetClientLanguage(m_ClientID, GetText(GetID("Language")));
+		m_pGameServer->m_apPlayers[m_ClientID]->SetTeam(TEAM_RED);
+		if(!m_ChangeMap)
 			m_pGameServer->SendChatTarget(m_ClientID, _("Successfully logged in! Have fun while playing!"));
-//		}
 	}
-	else
-	{
-		m_pGameServer->SendChatTarget(m_ClientID, _("This account does not exist. Use /help"));
-	}
+	else if(!m_ChangeMap)
+			m_pGameServer->SendChatTarget(m_ClientID, _("This account does not exist. Use /help"));
 }
 
 void CQueryApply::OnData()
@@ -65,7 +62,8 @@ void CQueryApply::OnData()
 		m_pDatabase->Apply(Username, Password, Language, m_ClientID, 
 		m_Exp, 
 		m_Level, 
-		m_Lifes);
+		m_Lifes,
+		m_Weapons);
 	}
 }
 
@@ -151,7 +149,7 @@ class CCharacter *CGS::GetPlayerChar(int ClientID)
 	return m_apPlayers[ClientID]->GetCharacter();
 }
 
-void CGS::CreateDamageInd(vec2 Pos, float Angle, int Amount, int64_t Mask)
+void CGS::CreateDamageInd(vec2 Pos, float Angle, int Amount, int MapID)
 {
 	float a = 3 * 3.14159f / 2 + Angle;
 	//float a = get_angle(dir);
@@ -160,7 +158,7 @@ void CGS::CreateDamageInd(vec2 Pos, float Angle, int Amount, int64_t Mask)
 	for(int i = 0; i < Amount; i++)
 	{
 		float f = mix(s, e, float(i+1)/float(Amount+2));
-		CNetEvent_DamageInd *pEvent = (CNetEvent_DamageInd *)m_Events.Create(NETEVENTTYPE_DAMAGEIND, sizeof(CNetEvent_DamageInd), Mask);
+		CNetEvent_DamageInd *pEvent = (CNetEvent_DamageInd *)m_Events.Create(NETEVENTTYPE_DAMAGEIND, sizeof(CNetEvent_DamageInd), -1, MapID);
 		if(pEvent)
 		{
 			pEvent->m_X = (int)Pos.x;
@@ -170,10 +168,10 @@ void CGS::CreateDamageInd(vec2 Pos, float Angle, int Amount, int64_t Mask)
 	}
 }
 
-void CGS::CreateHammerHit(vec2 Pos, int64_t Mask)
+void CGS::CreateHammerHit(vec2 Pos, int MapID)
 {
 	// create the event
-	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)m_Events.Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit), Mask);
+	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)m_Events.Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit), -1, MapID);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -182,10 +180,10 @@ void CGS::CreateHammerHit(vec2 Pos, int64_t Mask)
 }
 
 
-void CGS::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int64_t Mask)
+void CGS::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int MapID)
 {
 	// create the event
-	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), Mask);
+	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), -1, MapID);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -198,7 +196,7 @@ void CGS::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int64_
 		CCharacter *apEnts[MAX_CLIENTS];
 		float Radius = 135.0f;
 		float InnerRadius = 48.0f;
-		int Num = m_World.FindEntities(Pos, Radius, (CEntity**)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		int Num = m_World.FindEntities(Pos, Radius, (CEntity**)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MapID);
 		for(int i = 0; i < Num; i++)
 		{
 			vec2 Diff = apEnts[i]->m_Pos - Pos;
@@ -226,10 +224,10 @@ void create_smoke(vec2 Pos)
 	}
 }*/
 
-void CGS::CreatePlayerSpawn(vec2 Pos, int64_t Mask)
+void CGS::CreatePlayerSpawn(vec2 Pos, int MapID)
 {
 	// create the event
-	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)m_Events.Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn), Mask);
+	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)m_Events.Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn), -1, MapID);
 	if(ev)
 	{
 		ev->m_X = (int)Pos.x;
@@ -237,10 +235,10 @@ void CGS::CreatePlayerSpawn(vec2 Pos, int64_t Mask)
 	}
 }
 
-void CGS::CreateDeath(vec2 Pos, int ClientID, int64_t Mask)
+void CGS::CreateDeath(vec2 Pos, int ClientID, int MapID)
 {
 	// create the event
-	CNetEvent_Death *pEvent = (CNetEvent_Death *)m_Events.Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death), Mask);
+	CNetEvent_Death *pEvent = (CNetEvent_Death *)m_Events.Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death), -1, MapID);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -249,13 +247,13 @@ void CGS::CreateDeath(vec2 Pos, int ClientID, int64_t Mask)
 	}
 }
 
-void CGS::CreateSound(vec2 Pos, int Sound, int64_t Mask)
+void CGS::CreateSound(vec2 Pos, int Sound, int Mask, int MapID)
 {
 	if (Sound < 0)
 		return;
 
 	// create a sound
-	CNetEvent_SoundWorld *pEvent = (CNetEvent_SoundWorld *)m_Events.Create(NETEVENTTYPE_SOUNDWORLD, sizeof(CNetEvent_SoundWorld), Mask);
+	CNetEvent_SoundWorld *pEvent = (CNetEvent_SoundWorld *)m_Events.Create(NETEVENTTYPE_SOUNDWORLD, sizeof(CNetEvent_SoundWorld), Mask, MapID);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -478,12 +476,12 @@ void CGS::SwapTeams()
 	(void)m_pController->CheckTeamBalance();
 }
 
-void CGS::OnTick()
+void CGS::OnTick(int MapID)
 {
 	// check tuning
 	CheckPureTuning();
 
-	m_Collision.SetTime(m_pController->GetTime());
+	m_vCollision[MapID].SetTime(m_pController->GetTime());
 
 	// copy tuning
 	m_World.m_Core.m_Tuning = m_Tuning;
@@ -607,13 +605,14 @@ void CGS::OnClientPredictedInput(int ClientID, void *pInput)
 		m_apPlayers[ClientID]->OnPredictedInput((CNetObj_PlayerInput *)pInput);
 }
 
-void CGS::OnClientEnter(int ClientID)
+void CGS::OnClientEnter(int ClientID, bool ChangeMap)
 {
 	//world.insert_entity(&players[client_id]);
 	m_apPlayers[ClientID]->Respawn();
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "'%s' entered and joined the %s", Server()->ClientName(ClientID), m_pController->GetTeamName(m_apPlayers[ClientID]->GetTeam()));
-	SendChat(-1, CGS::CHAT_ALL, aBuf);
+	if(!ChangeMap)
+		SendChat(-1, CGS::CHAT_ALL, aBuf);
 
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), m_apPlayers[ClientID]->GetTeam());
 	Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
@@ -621,7 +620,7 @@ void CGS::OnClientEnter(int ClientID)
 	m_VoteUpdate = true;
 }
 
-void CGS::OnClientConnected(int ClientID)
+void CGS::OnClientConnected(int ClientID, int MapChange)
 {
 	// Check which team the player should be on
 	const int StartTeam = g_Config.m_SvTournamentMode ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
@@ -652,6 +651,7 @@ void CGS::OnClientConnected(int ClientID)
 
 void CGS::OnClientDrop(int ClientID, const char *pReason)
 {
+	m_apPlayers[ClientID]->m_AccData.m_UserID = m_apPlayers[ClientID]->m_AccData.m_Level = m_apPlayers[ClientID]->m_AccData.m_Exp = 0;
 	AbortVoteKickOnDisconnect(ClientID);
 	m_apPlayers[ClientID]->OnDisconnect(pReason);
 	delete m_apPlayers[ClientID];
@@ -747,10 +747,16 @@ void CGS::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 						default:
 							Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
 					}	
+					
+					if (Console()->IsCommand(pMsg->m_pMessage + 1, CFGFLAG_CHAT))
+						Console()->ExecuteLineFlag(pMsg->m_pMessage + 1, CFGFLAG_CHAT, ClientID);
+					else
+					{
+						char aBuf[256];
+						SendChatTarget(ClientID, _("Unknown command: '{str:command}'"), "command", pMsg->m_pMessage + 1, NULL);
+					}
 
-					Console()->ExecuteLineFlag(pMsg->m_pMessage + 1, ClientID, CFGFLAG_CHAT);
-
-					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);	
+					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
 				}
 			}
 			else
@@ -914,17 +920,6 @@ void CGS::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		else if(MsgID == NETMSGTYPE_CL_VOTE)
 		{
 			CNetMsg_Cl_Vote *pMsg = (CNetMsg_Cl_Vote *)pRawMsg;
-			if(!m_VoteCloseTime)
-			{
-				if(!pMsg->m_Vote)
-					return;
-
-				CCharacter *pOwner = GetPlayerChar(pPlayer->GetCID());
-				
-				if(pOwner)
-					pOwner->ChangeUpgrade(pMsg->m_Vote);
-				return;
-			}
 			if(pPlayer->m_Vote == 0)
 			{
 				if(!pMsg->m_Vote)
@@ -1050,6 +1045,9 @@ void CGS::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 	else if(MsgID == NETMSGTYPE_CL_ISOFFTIMEMOD)
 	{
 		pPlayer->m_IsOffTimeClient = true;
+
+		CNetMsg_Cl_IsOffTimeMod Msg;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID);
 	}
 	else
 	{
@@ -1592,6 +1590,41 @@ void CGS::ConAbout(IConsole::IResult *pResult, void *pUserData)
 	}
 }
 
+void CGS::ConShop(IConsole::IResult *pResult, void *pUserData)
+{
+	CGS *pSelf = (CGS *)pUserData;
+	int ClientID = pResult->GetClientID();
+	CPlayer *pPlayer = pSelf->m_apPlayers[ClientID];
+
+	if(pResult->NumArguments()<0)
+	{
+		pSelf->SendChatTarget(ClientID, _("Shop Items:"));
+		pSelf->SendChatTarget(ClientID, _("Weapons - Price: 5 Lifes"));
+		pSelf->SendChatTarget(ClientID, _("Turret  - Price: 5 Lifes"));
+		return;
+	}
+	const char *ShopItem = pResult->GetString(0);
+	if(str_comp(ShopItem, "weapons") == 0)
+	{
+		if((pPlayer->m_AccData.m_Lifes >= g_Config.m_EuWeapons) && !pPlayer->m_AccData.m_Weapons)
+		{
+			pPlayer->m_AccData.m_Lifes -= g_Config.m_EuWeapons;
+			pPlayer->m_AccData.m_Weapons=1;
+			pSelf->SendChatTarget(ClientID, _("You have All Weapons Now."));
+		}
+		else if(rand()%20 == 2)
+		{
+			pSelf->SendChatTarget(ClientID, _("It's just a big lie..."));
+		}
+		else
+			pSelf->SendChatTarget(ClientID, _("What the wrong with you? You already have All weapons OK???"));
+	}
+	else if(str_comp(ShopItem, "turret") == 0)
+	{
+
+	}
+}
+
 void CGS::ConLanguage(IConsole::IResult *pResult, void *pUserData)
 {
 	CGS *pSelf = (CGS *)pUserData;
@@ -1702,8 +1735,8 @@ void CGS::OnInit(/*class IKernel *pKernel*/)
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
-	m_World.SetGS(this);
-	m_Events.SetGS(this);
+	m_World.SetGameServer(this);
+	m_Events.SetGameServer(this);
 
 	//if(!data) // only load once
 		//data = load_data_from_memory(internal_data);
@@ -1711,35 +1744,47 @@ void CGS::OnInit(/*class IKernel *pKernel*/)
 	for(int i = 0; i < NUM_NETOBJTYPES; i++)
 		Server()->SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
 
-	m_Layers.Init(Kernel());
-	m_Collision.Init(&m_Layers);
-
-	//Get zones
-	m_ZoneHandle_TeeWorlds = m_Collision.GetZoneHandle("teeworlds");
-	m_ZoneHandle_OnTime = m_Collision.GetZoneHandle("offtime");
-	// reset everything here
-	//world = new GAMEWORLD;
-	//players = new CPlayer[MAX_CLIENTS];
-
 	// select gametype
 	m_pController = new CGameControllerMOD(this);
 
-	// setup core world
-	//for(int i = 0; i < MAX_CLIENTS; i++)
-	//	game.players[i].core.world = &game.world.core;
+	OnInitMap(0);
+
+#ifdef CONF_DEBUG
+	if(g_Config.m_DbgDummies)
+	{
+		for(int i = 0; i < g_Config.m_DbgDummies ; i++)
+		{
+			OnClientConnected(MAX_CLIENTS-i-1, false);
+		}
+	}
+#endif
+}
+
+void CGS::OnInitMap(int MapID)
+{
+	if(MapID < (int)m_vLayers.size())//Map exists already, huray
+		return;
+	
+
+	IEngineMap* pMap = Server()->GetMap(MapID);
+
+	m_vLayers.push_back(CLayers());
+	m_vCollision.push_back(CCollision());
+
+	m_vLayers[MapID].Init(Kernel(), pMap);//Default map id
+	m_vCollision[MapID].Init(&(m_vLayers[MapID]));
+
+	//Get zones
+	m_ZoneHandle_TeeWorlds = m_vCollision[MapID].GetZoneHandle("teeworlds");
+	m_ZoneHandle_OnTime = m_vCollision[MapID].GetZoneHandle("offtime");
+	m_ZoneHandle_ChangeWorld = m_vCollision[MapID].GetZoneHandle("changeworld");
+
+	m_pController->SetSpawnNum((MapID+1));
 
 	// create all entities from the game layer
-	CMapItemLayerTilemap *pTileMap = m_Layers.GameLayer();
-	CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
-
-
-
-
-	/*
-	num_spawn_points[0] = 0;
-	num_spawn_points[1] = 0;
-	num_spawn_points[2] = 0;
-	*/
+	CMapItemLayerTilemap *pTileMap = m_vLayers[MapID].GameLayer();
+	//CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
+	CTile *pTiles = (CTile *)pMap->GetData(pTileMap->m_Data);
 
 	for(int y = 0; y < pTileMap->m_Height; y++)
 	{
@@ -1757,35 +1802,34 @@ void CGS::OnInit(/*class IKernel *pKernel*/)
 				switch(Index - ENTITY_OFFSET)
 				{
 					case ENTITY_SPAWN:
-						m_pController->OnEntity("spawn", Pivot, P0, P1, P2, P3, -1);
+						m_pController->OnEntity("spawn", Pivot, P0, P1, P2, P3, -1, MapID);
 						break;
 					case ENTITY_SPAWN_RED:
-						m_pController->OnEntity("spawnRed", Pivot, P0, P1, P2, P3, -1);
+						m_pController->OnEntity("spawnRed", Pivot, P0, P1, P2, P3, -1, MapID);
 						break;
 					case ENTITY_SPAWN_BLUE:
-						m_pController->OnEntity("spawnRed", Pivot, P0, P1, P2, P3, -1);
+						m_pController->OnEntity("spawnRed", Pivot, P0, P1, P2, P3, -1, MapID);
 						break;
 				}
 			}
 		}
 	}
 
-	// create all entities from entity layers
-	if(m_Layers.EntityGroup())
+	if(m_vLayers[MapID].EntityGroup())
 	{
 		char aLayerName[12];
 
-		const CMapItemGroup* pGroup = m_Layers.EntityGroup();
+		const CMapItemGroup* pGroup = m_vLayers[MapID].EntityGroup();
 		for(int l = 0; l < pGroup->m_NumLayers; l++)
 		{
-			CMapItemLayer *pLayer = m_Layers.GetLayer(pGroup->m_StartLayer+l);
+			CMapItemLayer *pLayer = m_vLayers[MapID].GetLayer(pGroup->m_StartLayer+l);
 			if(pLayer->m_Type == LAYERTYPE_QUADS)
 			{
 				CMapItemLayerQuads *pQLayer = (CMapItemLayerQuads *)pLayer;
 
 				IntsToStr(pQLayer->m_aName, sizeof(aLayerName)/sizeof(int), aLayerName);
 
-				const CQuad *pQuads = (const CQuad *) Kernel()->RequestInterface<IMap>()->GetDataSwapped(pQLayer->m_Data);
+				const CQuad *pQuads = (const CQuad *) pMap->GetData(pQLayer->m_Data);
 
 				for(int q = 0; q < pQLayer->m_NumQuads; q++)
 				{
@@ -1795,23 +1839,16 @@ void CGS::OnInit(/*class IKernel *pKernel*/)
 					vec2 P3(fx2f(pQuads[q].m_aPoints[3].x), fx2f(pQuads[q].m_aPoints[3].y));
 					vec2 Pivot(fx2f(pQuads[q].m_aPoints[4].x), fx2f(pQuads[q].m_aPoints[4].y));
 
-					m_pController->OnEntity(aLayerName, Pivot, P0, P1, P2, P3, pQuads[q].m_PosEnv);
+					m_pController->OnEntity(aLayerName, Pivot, P0, P1, P2, P3, pQuads[q].m_PosEnv, MapID);
 				}
 			}
 		}
 	}
 
-	//game.world.insert_entity(game.Controller);
 
-#ifdef CONF_DEBUG
-	if(g_Config.m_DbgDummies)
-	{
-		for(int i = 0; i < g_Config.m_DbgDummies ; i++)
-		{
-			OnClientConnected(MAX_CLIENTS-i-1);
-		}
-	}
-#endif
+	char aBuf[128];
+	str_format(aBuf, sizeof(aBuf), "Initalized new Map with ID '%d'", MapID);
+	Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "multimap", aBuf);
 }
 
 void CGS::OnShutdown()
@@ -1879,13 +1916,15 @@ void CGS::Register(const char *Username, const char *Password, int ClientID)
 	sqlite3_free(pQueryBuf);
 }
 
-void CGS::Login(const char *Username, const char *Password, int ClientID)
+void CGS::Login(const char *Username, const char *Password, int ClientID, bool ChangeMap)
 {
 	char *pQueryBuf = sqlite3_mprintf("SELECT * FROM Accounts WHERE Username='%q'", Username);
+	dbg_msg("sssssssssssssssssssssssss", "s: %s", pQueryBuf);
 	CQueryLogin *pQuery = new CQueryLogin();
 	pQuery->Username = Username;
 	pQuery->Password = Password;
 	pQuery->m_ClientID = ClientID;
+	pQuery->m_ChangeMap = ChangeMap;
 	pQuery->m_pGameServer = this;
 	pQuery->Query(m_pDatabase, pQueryBuf);
 	sqlite3_free(pQueryBuf);
@@ -1904,4 +1943,39 @@ bool CGS::Apply(const char *Username, const char *Password, int ClientID, const 
 	sqlite3_free(pQueryBuf);
 
 	return true;
+}
+
+void CGS::KillCharacter(int ClientID)
+{
+	if(m_apPlayers[ClientID])
+	{
+		if(m_apPlayers[ClientID]->GetCharacter())
+			m_apPlayers[ClientID]->KillCharacter(-1);
+		//m_apPlayers->SetSpawning(false);
+	}
+}
+
+void CGS::PrepareClientChangeMap(int ClientID, bool ChangeMap)
+{
+	char Username[256];
+	char Password[256];
+	str_format(Username, sizeof(Username), m_apPlayers[ClientID]->m_AccData.m_Username);
+	str_format(Password, sizeof(Password), m_apPlayers[ClientID]->m_AccData.m_Password);
+	Apply(Username, Password, ClientID,
+		m_apPlayers[ClientID]->GetLanguage(), 
+        m_apPlayers[ClientID]->m_AccData.m_UserID, 
+        m_apPlayers[ClientID]->m_AccData.m_Level, 
+        m_apPlayers[ClientID]->m_AccData.m_Exp, 
+        m_apPlayers[ClientID]->m_AccData.m_Lifes);
+
+	
+	
+	if (m_apPlayers[ClientID])
+	{
+		m_apPlayers[ClientID]->KillCharacter(WEAPON_WORLD);
+		delete m_apPlayers[ClientID];
+		m_apPlayers[ClientID] = nullptr;
+	}
+	m_apPlayers[ClientID] = new(ClientID) CPlayer(this, ClientID, TEAM_RED);
+	Login(Username, Password, ClientID, true);
 }

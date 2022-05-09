@@ -72,7 +72,7 @@ void CPlayer::Tick()
 	if(!Server()->ClientIngame(m_ClientID))
 		return;
 
-	Server()->SetClientScore(m_ClientID, m_Score);
+	Server()->SetClientScore(m_ClientID, m_AccData.m_Level);
 	Server()->SetClientLanguage(m_ClientID, m_aLanguage);
 
 	// do latency stuff
@@ -219,7 +219,7 @@ void CPlayer::OnDisconnect(const char *pReason)
 {
 	KillCharacter();
 
-	if(Server()->ClientIngame(m_ClientID))
+	if(Server()->ClientIngame(m_ClientID) && !m_AccData.m_UserID)
 	{
 		char aBuf[512];
 		if(pReason && *pReason)
@@ -342,13 +342,13 @@ void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
-	if(!GS()->m_pController->CanSpawn(m_Team, &SpawnPos))
+	if(!GS()->m_pController->CanSpawn(m_Team, &SpawnPos, GS()->Server()->ClientMapID(m_ClientID)))
 		return;
 
 	m_Spawning = false;
-	m_pCharacter = new(m_ClientID) CCharacter(&GS()->m_World);
+	m_pCharacter = new(m_ClientID) CCharacter(&GS()->m_World, GS()->Server()->ClientMapID(m_ClientID));
 	m_pCharacter->Spawn(this, SpawnPos);
-	GS()->CreatePlayerSpawn(SpawnPos);
+	GS()->CreatePlayerSpawn(SpawnPos, GS()->Server()->ClientMapID(m_ClientID));
 }
 
 const char* CPlayer::GetLanguage()
