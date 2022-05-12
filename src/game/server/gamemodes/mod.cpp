@@ -16,8 +16,6 @@ CGameControllerMOD::CGameControllerMOD(class CGS *pGS)
 		m_pGameType = "OnTime";
 	else
 		m_pGameType = "OffTime";
-
-	m_Levels.push_back(new Level1(pGS, this));
 }
 
 void CGameControllerMOD::Tick()

@@ -96,16 +96,10 @@ class CGS : public IGS
 	int m_ConsoleOutput_Target;
 
 public:
-	int m_ZoneHandle_TeeWorlds;
-	int m_ZoneHandle_OnTime;
-	int m_ZoneHandle_ChangeWorld;
-
-public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
 	CCollision *Collision(int MapID) { return &(m_vCollision[MapID]); }
 	CTuningParams *Tuning() { return &m_Tuning; }
-	virtual class CLayers *Layers(int MapID) { return &m_vLayers[MapID]; }
 	
 
 	CGS();
@@ -170,6 +164,7 @@ public:
 
 	// network
 	void SendChatTarget(int To, const char *pText, ...);
+	void SendChatTest(int To, const char *pText);
 	void SendChat(int ClientID, int Team, const char *pText);
 	void SendEmoticon(int ClientID, int Emoticon);
 	void SendWeaponPickup(int ClientID, int Weapon);

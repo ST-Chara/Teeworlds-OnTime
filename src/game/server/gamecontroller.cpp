@@ -128,28 +128,27 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int MapID)
 }
 
 
-bool IGameController::OnEntity(const char* pName, vec2 Pivot, vec2 P0, vec2 P1, vec2 P2, vec2 P3, int PosEnv, int MapID)
+bool IGameController::OnEntity(int Index, vec2 Pos, int MapID)
 {
-	vec2 Pos = (P0 + P1 + P2 + P3)/4.0f;
 	int Type = -1;
 
 	int SubType = 0;
 
-	if(str_comp(pName, "spawn") == 0)
+	if(Index == ENTITY_SPAWN)
 	{
 		m_vSpawnPoints[MapID].m_aaSpawnPoints[0][m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[0]++] = Pos;
 	}
-	else if(str_comp(pName, "spawnRed") == 0)
+	else if(Index == ENTITY_SPAWN_RED)
 	{
 		m_vSpawnPoints[MapID].m_aaSpawnPoints[1][m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[1]++] = Pos;
 	}
-	else if(str_comp(pName, "spawnBlue") == 0)
+	else if(Index == ENTITY_SPAWN_BLUE)
 	{
 		m_vSpawnPoints[MapID].m_aaSpawnPoints[2][m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[2]++] = Pos;
 	}
-	else if(str_comp(pName, "armor") == 0)
+	else if(Index == ENTITY_ARMOR_1)
 		Type = POWERUP_ARMOR;
-	else if(str_comp(pName, "health") == 0)
+	else if(Index == ENTITY_HEALTH_1)
 		Type = POWERUP_HEALTH;
 
 	if(Type != -1)

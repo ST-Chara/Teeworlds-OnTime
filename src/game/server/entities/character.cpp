@@ -9,6 +9,8 @@
 #include "laser.h"
 #include "projectile.h"
 
+#include <game/server/OnTime/Chapters/Levels.h>
+#include <game/collision.h>
 //input count
 struct CInputCount
 {
@@ -538,14 +540,44 @@ void CCharacter::Tick()
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
 	}
 
-	// handle death-zones
-	if(GS()->Collision(GetMapID())->GetZoneValueAt(GS()->m_ZoneHandle_TeeWorlds, m_Pos.x+m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f) == TILE_DEATH ||
-		GS()->Collision(GetMapID())->GetZoneValueAt(GS()->m_ZoneHandle_TeeWorlds, m_Pos.x+m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f) == TILE_DEATH ||
-		GS()->Collision(GetMapID())->GetZoneValueAt(GS()->m_ZoneHandle_TeeWorlds, m_Pos.x-m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f) == TILE_DEATH ||
-		GS()->Collision(GetMapID())->GetZoneValueAt(GS()->m_ZoneHandle_TeeWorlds, m_Pos.x-m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f) == TILE_DEATH ||
-		GameLayerClipped(m_Pos))
+//	dbg_msg("map","%d", GS()->Collision(GetMapID())->GetTile(m_Pos));
+	switch(GS()->Collision(GetMapID())->GetTile(m_Pos))
 	{
-		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
+		case CCollision::COLFLAG_C1:
+			GS()->Server()->SetClientMap(m_pPlayer->GetCID(), Chapter1);
+			break;
+		
+		case CCollision::COLFLAG_C2:
+			GS()->Server()->SetClientMap(m_pPlayer->GetCID(), Chapter2);
+			break;
+
+		case CCollision::COLFLAG_C3:
+			GS()->Server()->SetClientMap(m_pPlayer->GetCID(), Chapter3);	
+			break;
+
+		case CCollision::COLFLAG_C4:
+			GS()->Server()->SetClientMap(m_pPlayer->GetCID(), Chapter4);
+			break;
+		
+		case CCollision::COLFLAG_C5:
+			GS()->Server()->SetClientMap(m_pPlayer->GetCID(), Chapter5);
+			break;
+		
+		case CCollision::COLFLAG_C6:
+			GS()->Server()->SetClientMap(m_pPlayer->GetCID(), Chapter6);
+			break;
+		
+		case CCollision::COLFLAG_C7:
+			GS()->Server()->SetClientMap(m_pPlayer->GetCID(), Chapter7);
+			break;
+		
+		case CCollision::COLFLAG_C8:
+			GS()->Server()->SetClientMap(m_pPlayer->GetCID(), Chapter8);
+			break;
+		
+		case CCollision::COLFLAG_C9:
+			GS()->Server()->SetClientMap(m_pPlayer->GetCID(), Chapter9);
+			break;
 	}
 
 	// handle Weapons
@@ -939,15 +971,4 @@ void CCharacter::Buy(const char *Name, int *Upgrade, long long unsigned Price, i
 
 void CCharacter::ChangeUpgrade(int Value)
 {
-	if(GS()->Collision(GetMapID())->IsShopTile(m_Pos))
-	{
-		m_Menu += Value;
-
-		if(m_Menu < 0) 
-			m_Menu = 0;
-		if(m_Menu > 7)
-			m_Menu = 7;
-
-		return;
-	}
 }

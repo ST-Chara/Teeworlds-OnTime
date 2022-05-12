@@ -9,8 +9,7 @@ public:
     Level1(CGS* pGameServer, CGameControllerMOD* pController);
     ~Level1() {}
 
-    void Tick();
-	int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
+    
 };
 
 #endif

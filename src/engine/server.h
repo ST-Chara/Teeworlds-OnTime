@@ -218,7 +218,6 @@ public:
 	virtual const char *NetVersion() = 0;
 
 	virtual void OnSetAuthed(int ClientID, int Level) = 0;
-	virtual class CLayers *Layers(int MapID) = 0;
 };
 
 extern IGS *CreateGS();

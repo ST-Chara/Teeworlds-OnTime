@@ -4,7 +4,6 @@
 #define GAME_COLLISION_H
 
 #include <base/vmath.h>
-#include <base/tl/array.h>
 
 class CCollision
 {
@@ -13,12 +12,7 @@ class CCollision
 	int m_Height;
 	class CLayers *m_pLayers;
 
-	double m_Time;
-
-	array< array<int> > m_Zones;
-
 	bool IsTileSolid(int x, int y);
-	int GetTile(int x, int y);
 
 public:
 	enum
@@ -26,6 +20,15 @@ public:
 		COLFLAG_SOLID=1,
 		COLFLAG_DEATH=2,
 		COLFLAG_NOHOOK=4,
+		COLFLAG_C1=8,
+		COLFLAG_C2=16,
+		COLFLAG_C3=32,
+		COLFLAG_C4=64,
+		COLFLAG_C5=128,
+		COLFLAG_C6=256,
+		COLFLAG_C7=512,
+		COLFLAG_C8=1024,
+		COLFLAG_C9=2048,
 	};
 
 	CCollision();
@@ -40,14 +43,17 @@ public:
 	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity);
 	bool TestBox(vec2 Pos, vec2 Size);
 
-	void SetTime(double Time) { m_Time = Time; }
+	int GetTile(int x, int y);
+	int GetTile(vec2 Pos) { return GetTile(Pos.x, Pos.y); }
 
-	//This function return an Handle to access all zone layers with the name "pName"
-	int GetZoneHandle(const char* pName);
-	int GetZoneValueAt(int ZoneHandle, float x, float y);
-	int GetZoneValueAt(int ZoneHandle, vec2 Pos);
-
-	bool IsShopTile(vec2 Pos);
+	int GetMapIndex(vec2 Pos) const;
+	int GetTileIndex(int Index);
+	int GetPureMapIndex(vec2 Pos)
+	{
+		int Nx = clamp((int)Pos.x/32, 0, m_Width-1);
+		int Ny = clamp((int)Pos.y/32, 0, m_Height-1);
+		return Ny*m_Width+Nx;
+	}
 };
 
 #endif

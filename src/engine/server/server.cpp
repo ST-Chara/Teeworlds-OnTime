@@ -1455,10 +1455,9 @@ int CServer::Run()
 		dbg_msg("server", "failed to load MAIN map. mapname='%s'", g_Config.m_SvMap);
 		return -1;
 	}
-
 	// read file data into buffer
 	char aFileBuf[512];
-	str_format(aFileBuf, sizeof(aFileBuf), "maps/worlds.json");
+	str_format(aFileBuf, sizeof(aFileBuf), "maps/chapters.json");
 	const IOHANDLE File = m_pStorage->OpenFile(aFileBuf, IOFLAG_READ, IStorage::TYPE_ALL);
 	if(!File)
 	{
@@ -1491,10 +1490,10 @@ int CServer::Run()
 	{
 		for(unsigned i = 0; i < rStart.u.array.length; ++i)
 		{
-			const char* pWorldName = rStart[i]["name"];
-			const char* pPath = rStart[i]["path"];
+			const char* pMapName = rStart[i]["map"];
+			const char* pChapter = rStart[i]["chapter"];
 
-			LoadMap(pPath);
+			LoadMap(pMapName);
 		}
 	}
 

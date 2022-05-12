@@ -4,6 +4,19 @@
 #include <game/server/gamemodes/mod.h>
 #include <game/server/gamecontext.h>
 
+enum Chapters
+{
+    Chapter1=0,
+    Chapter2,
+    Chapter3,
+    Chapter4,
+    Chapter5,
+    Chapter6,
+    Chapter7,
+    Chapter8,
+    Chapter9,
+};
+
 enum Levels
 {
     // Chapter 1.
@@ -40,10 +53,6 @@ public:
 		m_pController = pController;
 	}
 	
-    virtual ~CLevel() {};
-    virtual void Tick() = 0;
-    virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon) {return 0;}
-
     const char *m_LevelName;
     int m_TypeLevel;
     int m_Chapter;

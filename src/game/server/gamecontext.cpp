@@ -12,7 +12,6 @@
 #include "gamemodes/mod.h"
 
 #include <teeuniverses/components/localization.h>
-
 void CQueryRegister::OnData()
 {
 	if(Next())
@@ -280,6 +279,10 @@ void CGS::CreateSoundGlobal(int Sound, int Target)
 	}
 }
 
+void CGS::SendChatTest(int To, const char *pText)
+{
+
+}
 
 void CGS::SendChatTarget(int To, const char *pText, ...)
 {
@@ -480,8 +483,6 @@ void CGS::OnTick(int MapID)
 {
 	// check tuning
 	CheckPureTuning();
-
-	m_vCollision[MapID].SetTime(m_pController->GetTime());
 
 	// copy tuning
 	m_World.m_Core.m_Tuning = m_Tuning;
@@ -1774,11 +1775,6 @@ void CGS::OnInitMap(int MapID)
 	m_vLayers[MapID].Init(Kernel(), pMap);//Default map id
 	m_vCollision[MapID].Init(&(m_vLayers[MapID]));
 
-	//Get zones
-	m_ZoneHandle_TeeWorlds = m_vCollision[MapID].GetZoneHandle("teeworlds");
-	m_ZoneHandle_OnTime = m_vCollision[MapID].GetZoneHandle("offtime");
-	m_ZoneHandle_ChangeWorld = m_vCollision[MapID].GetZoneHandle("changeworld");
-
 	m_pController->SetSpawnNum((MapID+1));
 
 	// create all entities from the game layer
@@ -1794,53 +1790,8 @@ void CGS::OnInitMap(int MapID)
 
 			if(Index >= ENTITY_OFFSET)
 			{
-				vec2 Pivot(x*32.0f+16.0f, y*32.0f+16.0f);
-				vec2 P0(x*32.0f, y*32.0f);
-				vec2 P1((x+1)*32.0f, y*32.0f);
-				vec2 P2(x*32.0f, (y+1)*32.0f);
-				vec2 P3((x+1)*32.0f, (y+1)*32.0f);
-				switch(Index - ENTITY_OFFSET)
-				{
-					case ENTITY_SPAWN:
-						m_pController->OnEntity("spawn", Pivot, P0, P1, P2, P3, -1, MapID);
-						break;
-					case ENTITY_SPAWN_RED:
-						m_pController->OnEntity("spawnRed", Pivot, P0, P1, P2, P3, -1, MapID);
-						break;
-					case ENTITY_SPAWN_BLUE:
-						m_pController->OnEntity("spawnRed", Pivot, P0, P1, P2, P3, -1, MapID);
-						break;
-				}
-			}
-		}
-	}
-
-	if(m_vLayers[MapID].EntityGroup())
-	{
-		char aLayerName[12];
-
-		const CMapItemGroup* pGroup = m_vLayers[MapID].EntityGroup();
-		for(int l = 0; l < pGroup->m_NumLayers; l++)
-		{
-			CMapItemLayer *pLayer = m_vLayers[MapID].GetLayer(pGroup->m_StartLayer+l);
-			if(pLayer->m_Type == LAYERTYPE_QUADS)
-			{
-				CMapItemLayerQuads *pQLayer = (CMapItemLayerQuads *)pLayer;
-
-				IntsToStr(pQLayer->m_aName, sizeof(aLayerName)/sizeof(int), aLayerName);
-
-				const CQuad *pQuads = (const CQuad *) pMap->GetData(pQLayer->m_Data);
-
-				for(int q = 0; q < pQLayer->m_NumQuads; q++)
-				{
-					vec2 P0(fx2f(pQuads[q].m_aPoints[0].x), fx2f(pQuads[q].m_aPoints[0].y));
-					vec2 P1(fx2f(pQuads[q].m_aPoints[1].x), fx2f(pQuads[q].m_aPoints[1].y));
-					vec2 P2(fx2f(pQuads[q].m_aPoints[2].x), fx2f(pQuads[q].m_aPoints[2].y));
-					vec2 P3(fx2f(pQuads[q].m_aPoints[3].x), fx2f(pQuads[q].m_aPoints[3].y));
-					vec2 Pivot(fx2f(pQuads[q].m_aPoints[4].x), fx2f(pQuads[q].m_aPoints[4].y));
-
-					m_pController->OnEntity(aLayerName, Pivot, P0, P1, P2, P3, pQuads[q].m_PosEnv, MapID);
-				}
+				vec2 Pos(x*32.0f+16.0f, y*32.0f+16.0f);
+				m_pController->OnEntity(Index-ENTITY_OFFSET, Pos, MapID);
 			}
 		}
 	}

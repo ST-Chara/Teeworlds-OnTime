@@ -9,7 +9,6 @@
 #define BASE_SYSTEM_H
 
 #include "detect.h"
-#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -221,6 +220,21 @@ IOHANDLE io_open(const char *filename, int flags);
 unsigned io_read(IOHANDLE io, void *buffer, unsigned size);
 
 /*
+	Function: io_unread_byte
+		"Unreads" a single byte, making it available for future read
+		operations.
+
+	Parameters:
+		io - Handle to the file to unread the byte from.
+		byte - Byte to unread.
+
+	Returns:
+		Returns 0 on success and 1 on failure.
+
+*/
+unsigned io_unread_byte(IOHANDLE io, unsigned char byte);
+
+/*
 	Function: io_skip
 		Skips data in a file.
 
@@ -407,7 +421,7 @@ void lock_destroy(LOCK lock);
 int lock_trylock(LOCK lock);
 void lock_wait(LOCK lock);
 void lock_unlock(LOCK lock);
-
+void lock_release(LOCK lock);
 
 /* Group: Semaphores */
 
@@ -734,10 +748,6 @@ int net_tcp_close(NETSOCKET sock);
 */
 void str_append(char *dst, const char *src, int dst_size);
 
-//TeeUniverses
-void str_append_num(char *dst, const char *src, int dst_size, int num);
-
-
 /*
 	Function: str_copy
 		Copies a string to another.
@@ -752,6 +762,9 @@ void str_append_num(char *dst, const char *src, int dst_size, int num);
 		- Garantees that dst string will contain zero-termination.
 */
 void str_copy(char *dst, const char *src, int dst_size);
+
+//TeeUniverses
+void str_append_num(char *dst, const char *src, int dst_size, int num);
 
 /*
 	Function: str_length
@@ -1237,6 +1250,8 @@ const char *str_utf8_skip_whitespaces(const char *str);
 */
 int str_utf8_rewind(const char *str, int cursor);
 
+int str_utf8_isstart(char c);
+
 /*
 	Function: str_utf8_forward
 		Moves a cursor forwards in an utf8 string
@@ -1300,6 +1315,40 @@ int str_utf8_encode(char *ptr, int chr);
 int str_utf8_check(const char *str);
 
 /*
+	Function: uint32_from_be
+		Reads a 32-bit big-endian coded integer from 4 bytes of data.
+
+	Parameters:
+		bytes - Pointer to the bytes to interpret.
+
+	Returns:
+		The read integer.
+*/
+inline unsigned uint32_from_be(const void *bytes)
+{
+	const unsigned char *b = (const unsigned char *)bytes;
+	return (b[0]<<24)|(b[1]<<16)|(b[2]<<8)|b[3];
+}
+
+/*
+	Function: uint32_to_be
+		Writes a 32-bit integer into 4 bytes of data, coded as
+		big-endian.
+
+	Parameters:
+		bytes - The place to write the integer to.
+		integer - The integer to write.
+*/
+inline void uint32_to_be(void *bytes, unsigned integer)
+{
+	unsigned char *b = (unsigned char *)bytes;
+	b[0] = (integer&0xff000000)>>24;
+	b[1] = (integer&0x00ff0000)>>16;
+	b[2] = (integer&0x0000ff00)>>8;
+	b[3] = (integer&0x000000ff)>>0;
+}
+
+/*
 	Function: secure_random_init
 		Initializes the secure random module.
 		You *MUST* check the return value of this function.
@@ -1318,7 +1367,7 @@ int secure_random_init();
 		bytes - Pointer to the start of the buffer.
 		length - Length of the buffer.
 */
-void secure_random_fill(void *bytes, size_t length);
+void secure_random_fill(void *bytes, unsigned length);
 
 #ifdef __cplusplus
 }

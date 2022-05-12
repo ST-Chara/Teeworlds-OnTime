@@ -303,6 +303,11 @@ unsigned io_read(IOHANDLE io, void *buffer, unsigned size)
 	return fread(buffer, 1, size, (FILE*)io);
 }
 
+unsigned io_unread_byte(IOHANDLE io, unsigned char byte)
+{
+	return ungetc(byte, (FILE*)io) == EOF;
+}
+
 unsigned io_skip(IOHANDLE io, int size)
 {
 	fseek((FILE*)io, size, SEEK_CUR);
@@ -497,8 +502,19 @@ void lock_wait(LOCK lock)
 #endif
 }
 
+void lock_release(LOCK lock)
+{
+#if defined(CONF_FAMILY_UNIX)
+	pthread_mutex_unlock((LOCKINTERNAL *)lock);
+#elif defined(CONF_FAMILY_WINDOWS)
+	LeaveCriticalSection((LPCRITICAL_SECTION)lock);
+#else
+	#error not implemented on this platform
+#endif
+}
 void lock_unlock(LOCK lock)
 {
+
 #if defined(CONF_FAMILY_UNIX)
 	pthread_mutex_unlock((LOCKINTERNAL *)lock);
 #elif defined(CONF_FAMILY_WINDOWS)
@@ -1871,30 +1887,7 @@ const char *str_utf8_skip_whitespaces(const char *str)
 	return str;
 }
 
-//TeeUniverses
-void str_append_num(char *dst, const char *src, int dst_size, int num)
-{
-	int s = strlen(dst);
-	int i = 0;
-	while(s < dst_size)
-	{
-		if(i>=num)
-		{
-			dst[s] = 0;
-			return;
-		}
-		
-		dst[s] = src[i];
-		if(!src[i]) /* check for null termination */
-			return;
-		s++;
-		i++;
-	}
-
-	dst[dst_size-1] = 0; /* assure null termination */
-}
-
-static int str_utf8_isstart(char c)
+int str_utf8_isstart(char c)
 {
 	if((c&0xC0) == 0x80) /* 10xxxxxx */
 		return 0;
@@ -2095,7 +2088,7 @@ int secure_random_init()
 #endif
 }
 
-void secure_random_fill(void *bytes, size_t length)
+void secure_random_fill(void *bytes, unsigned length)
 {
 	if(!secure_random_data.initialized)
 	{
@@ -2115,6 +2108,29 @@ void secure_random_fill(void *bytes, size_t length)
 		dbg_break();
 	}
 #endif
+}
+
+//TeeUniverses
+void str_append_num(char *dst, const char *src, int dst_size, int num)
+{
+	int s = strlen(dst);
+	int i = 0;
+	while(s < dst_size)
+	{
+		if(i >= num)
+		{
+			dst[s] = 0;
+			return;
+		}
+
+		dst[s] = src[i];
+		if(!src[i]) /* check for null termination */
+			return;
+		s++;
+		i++;
+	}
+
+	dst[dst_size - 1] = 0; /* assure null termination */
 }
 
 #if defined(__cplusplus)
